@@ -10,14 +10,18 @@ return new class extends Migration
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('charge_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('charge_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('unit_id')->constrained()->cascadeOnDelete();
             $table->decimal('amount', 10, 2);
-            $table->datetime('paid_at')->nullable();
-            $table->string('method')->nullable();
-            $table->string('reference')->nullable();
+            $table->date('paid_date');
+            $table->string('source');
+            $table->string('reference_number')->nullable();
+            $table->string('matched_by')->default('manual');
+            $table->string('reconciliation_status')->default('pending_verification');
             $table->timestamps();
 
-            $table->index(['charge_id']);
+            $table->index(['unit_id', 'paid_date']);
+            $table->index(['reconciliation_status']);
         });
     }
 };
