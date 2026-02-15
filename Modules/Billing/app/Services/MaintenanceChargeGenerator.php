@@ -6,20 +6,21 @@ use Illuminate\Support\Collection;
 use Modules\Apartment\Models\MaintenanceSlab;
 use Modules\Apartment\Models\Unit;
 use Modules\Billing\Models\Charge;
+use Modules\Billing\Support\BillingQuarter;
 
 class MaintenanceChargeGenerator
 {
     /**
      * @return Collection<int, Charge>
      */
-    public function generate(string $billingMonth, ?string $dueDate = null): Collection
+    public function generate(string $billingQuarter, ?string $dueDate = null): Collection
     {
         $units = Unit::all();
         $charges = collect();
 
         foreach ($units as $unit) {
             $existing = Charge::where('unit_id', $unit->id)
-                ->where('billing_month', $billingMonth)
+                ->where('billing_month', $billingQuarter)
                 ->where('type', 'maintenance')
                 ->exists();
 
@@ -36,9 +37,9 @@ class MaintenanceChargeGenerator
             $charges->push(Charge::create([
                 'unit_id' => $unit->id,
                 'type' => 'maintenance',
-                'description' => "Maintenance for {$billingMonth}",
-                'amount' => $rate,
-                'billing_month' => $billingMonth,
+                'description' => "Maintenance for " . BillingQuarter::label($billingQuarter),
+                'amount' => $rate * 3,
+                'billing_month' => $billingQuarter,
                 'due_date' => $dueDate,
                 'status' => 'pending',
             ]));

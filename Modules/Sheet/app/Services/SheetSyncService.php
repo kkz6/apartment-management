@@ -6,6 +6,7 @@ use Modules\Apartment\Models\Unit;
 use Modules\Billing\Models\Charge;
 use Modules\Billing\Models\Expense;
 use Modules\Billing\Models\Payment;
+use Modules\Billing\Support\BillingQuarter;
 use Revolution\Google\Sheets\Facades\Sheets;
 
 class SheetSyncService
@@ -17,18 +18,17 @@ class SheetSyncService
         $this->spreadsheetId = config('services.google.sheet_id', '');
     }
 
-    public function syncMonthlyTab(string $billingMonth): void
+    public function syncMonthlyTab(string $billingQuarter): void
     {
-        $sheetName = $this->monthTabName($billingMonth);
+        $sheetName = $this->monthTabName($billingQuarter);
+        $range = BillingQuarter::dateRange($billingQuarter);
 
-        $payments = Payment::whereMonth('paid_date', substr($billingMonth, 5, 2))
-            ->whereYear('paid_date', substr($billingMonth, 0, 4))
+        $payments = Payment::whereBetween('paid_date', [$range['start'], $range['end']])
             ->with(['unit', 'charge'])
             ->orderBy('paid_date')
             ->get();
 
-        $expenses = Expense::whereMonth('paid_date', substr($billingMonth, 5, 2))
-            ->whereYear('paid_date', substr($billingMonth, 0, 4))
+        $expenses = Expense::whereBetween('paid_date', [$range['start'], $range['end']])
             ->orderBy('paid_date')
             ->get();
 
@@ -117,8 +117,8 @@ class SheetSyncService
             ->update($rows);
     }
 
-    private function monthTabName(string $billingMonth): string
+    private function monthTabName(string $billingQuarter): string
     {
-        return date('M Y', strtotime("{$billingMonth}-01"));
+        return BillingQuarter::label($billingQuarter);
     }
 }

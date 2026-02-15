@@ -9,6 +9,7 @@ use Modules\Apartment\Models\Unit;
 use Modules\Billing\Models\Charge;
 use Modules\Billing\Models\Expense;
 use Modules\Billing\Models\Payment;
+use Modules\Billing\Support\BillingQuarter;
 
 class SampleDataSeeder extends Seeder
 {
@@ -47,9 +48,11 @@ class SampleDataSeeder extends Seeder
             ]);
         }
 
-        $billingMonths = ['2026-01', '2026-02'];
+        $billingQuarters = ['2025-Q4', '2026-Q1'];
 
-        foreach ($billingMonths as $month) {
+        foreach ($billingQuarters as $quarter) {
+            $range = BillingQuarter::dateRange($quarter);
+
             foreach (Unit::all() as $unit) {
                 $rate = MaintenanceSlab::currentRate($unit->flat_type);
 
@@ -57,26 +60,26 @@ class SampleDataSeeder extends Seeder
                     Charge::create([
                         'unit_id' => $unit->id,
                         'type' => 'maintenance',
-                        'description' => "Maintenance for {$month}",
-                        'amount' => $rate,
-                        'billing_month' => $month,
-                        'due_date' => "{$month}-10",
+                        'description' => "Maintenance for " . BillingQuarter::label($quarter),
+                        'amount' => $rate * 3,
+                        'billing_month' => $quarter,
+                        'due_date' => $range['start']->copy()->addDays(9)->format('Y-m-d'),
                         'status' => 'pending',
                     ]);
                 }
             }
         }
 
-        $janCharges = Charge::where('billing_month', '2026-01')
+        $q4Charges = Charge::where('billing_month', '2025-Q4')
             ->where('type', 'maintenance')
             ->get();
 
-        foreach ($janCharges->take(8) as $charge) {
+        foreach ($q4Charges->take(8) as $charge) {
             Payment::create([
                 'charge_id' => $charge->id,
                 'unit_id' => $charge->unit_id,
                 'amount' => $charge->amount,
-                'paid_date' => '2026-01-' . str_pad(rand(5, 15), 2, '0', STR_PAD_LEFT),
+                'paid_date' => '2025-10-' . str_pad(rand(5, 15), 2, '0', STR_PAD_LEFT),
                 'source' => collect(['gpay', 'bank_transfer', 'cash'])->random(),
                 'matched_by' => 'manual',
                 'reconciliation_status' => 'bank_verified',
@@ -85,16 +88,16 @@ class SampleDataSeeder extends Seeder
             $charge->updateStatus();
         }
 
-        $febCharges = Charge::where('billing_month', '2026-02')
+        $q1Charges = Charge::where('billing_month', '2026-Q1')
             ->where('type', 'maintenance')
             ->get();
 
-        foreach ($febCharges->take(4) as $charge) {
+        foreach ($q1Charges->take(4) as $charge) {
             Payment::create([
                 'charge_id' => $charge->id,
                 'unit_id' => $charge->unit_id,
                 'amount' => $charge->amount,
-                'paid_date' => '2026-02-' . str_pad(rand(5, 12), 2, '0', STR_PAD_LEFT),
+                'paid_date' => '2026-01-' . str_pad(rand(5, 20), 2, '0', STR_PAD_LEFT),
                 'source' => 'gpay',
                 'matched_by' => 'manual',
                 'reconciliation_status' => 'pending_verification',
@@ -114,8 +117,8 @@ class SampleDataSeeder extends Seeder
                 'type' => 'ad-hoc',
                 'description' => 'Pongal festival fund',
                 'amount' => 500.00,
-                'billing_month' => '2026-01',
-                'due_date' => '2026-01-10',
+                'billing_month' => '2025-Q4',
+                'due_date' => '2025-10-10',
                 'status' => 'pending',
             ]);
         }

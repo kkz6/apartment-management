@@ -17,7 +17,7 @@ class ChargeFactory extends Factory
             'type' => $this->faker->randomElement(['maintenance', 'ad-hoc']),
             'description' => $this->faker->sentence(),
             'amount' => $this->faker->randomFloat(2, 1000, 5000),
-            'billing_month' => $this->faker->date('Y-m'),
+            'billing_month' => $this->faker->year() . '-Q' . $this->faker->numberBetween(1, 4),
             'due_date' => $this->faker->date(),
             'status' => 'pending',
         ];

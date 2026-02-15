@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Button } from '@/Components/ui/button';
+import { Input } from '@/Components/ui/input';
+import { Label } from '@/Components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 
 const form = useForm({
     flat_number: '',
@@ -23,22 +24,24 @@ const submit = () => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
+            <h2 class="text-xl font-semibold leading-tight text-foreground">
                 Add Unit
             </h2>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-2xl sm:px-6 lg:px-8">
-                <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                    <div class="p-6 text-gray-900">
+        <div class="max-w-2xl">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Unit Details</CardTitle>
+                    </CardHeader>
+                    <CardContent>
                         <form @submit.prevent="submit" class="space-y-6">
                             <div>
-                                <InputLabel for="flat_number" value="Flat Number" />
-                                <TextInput
+                                <Label for="flat_number">Flat Number</Label>
+                                <Input
                                     id="flat_number"
                                     type="text"
-                                    class="mt-1 block w-full"
+                                    class="mt-1"
                                     v-model="form.flat_number"
                                     required
                                     autofocus
@@ -47,11 +50,11 @@ const submit = () => {
                             </div>
 
                             <div>
-                                <InputLabel for="flat_type" value="Flat Type" />
+                                <Label for="flat_type">Flat Type</Label>
                                 <select
                                     id="flat_type"
                                     v-model="form.flat_type"
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    class="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                     required
                                 >
                                     <option value="1BHK">1BHK</option>
@@ -62,11 +65,11 @@ const submit = () => {
                             </div>
 
                             <div>
-                                <InputLabel for="floor" value="Floor" />
-                                <TextInput
+                                <Label for="floor">Floor</Label>
+                                <Input
                                     id="floor"
                                     type="number"
-                                    class="mt-1 block w-full"
+                                    class="mt-1"
                                     v-model="form.floor"
                                     required
                                     min="0"
@@ -75,11 +78,11 @@ const submit = () => {
                             </div>
 
                             <div>
-                                <InputLabel for="area_sqft" value="Area (sqft)" />
-                                <TextInput
+                                <Label for="area_sqft">Area (sqft)</Label>
+                                <Input
                                     id="area_sqft"
                                     type="number"
-                                    class="mt-1 block w-full"
+                                    class="mt-1"
                                     v-model="form.area_sqft"
                                     min="0"
                                     step="0.01"
@@ -88,18 +91,19 @@ const submit = () => {
                             </div>
 
                             <div class="flex items-center gap-4">
-                                <PrimaryButton :disabled="form.processing">Save</PrimaryButton>
+                                <Button type="submit" :disabled="form.processing">
+                                    Save
+                                </Button>
                                 <Link
                                     :href="route('units.index')"
-                                    class="text-sm text-gray-600 underline hover:text-gray-900"
+                                    class="text-sm text-muted-foreground underline hover:text-foreground"
                                 >
                                     Cancel
                                 </Link>
                             </div>
                         </form>
-                    </div>
-                </div>
-            </div>
+                    </CardContent>
+                </Card>
         </div>
     </AuthenticatedLayout>
 </template>

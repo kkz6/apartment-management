@@ -8,6 +8,7 @@ use Modules\Apartment\Models\Unit;
 use Modules\Billing\Models\Charge;
 use Modules\Billing\Models\Expense;
 use Modules\Billing\Models\Payment;
+use Modules\Billing\Support\BillingQuarter;
 use Modules\Import\Models\ParsedTransaction;
 use Modules\Import\Models\Upload;
 
@@ -15,15 +16,15 @@ class DashboardController extends Controller
 {
     public function __invoke(): Response
     {
-        $collectedThisMonth = Payment::whereMonth('paid_date', now()->month)
-            ->whereYear('paid_date', now()->year)
+        $quarterRange = BillingQuarter::dateRange(BillingQuarter::current());
+
+        $collectedThisQuarter = Payment::whereBetween('paid_date', [$quarterRange['start'], $quarterRange['end']])
             ->sum('amount');
 
         $pendingDues = Charge::where('status', '!=', 'paid')->sum('amount')
             - Payment::whereHas('charge', fn ($q) => $q->where('status', '!=', 'paid'))->sum('amount');
 
-        $totalExpensesThisMonth = Expense::whereMonth('paid_date', now()->month)
-            ->whereYear('paid_date', now()->year)
+        $totalExpensesThisQuarter = Expense::whereBetween('paid_date', [$quarterRange['start'], $quarterRange['end']])
             ->sum('amount');
 
         $unitBalances = Unit::with('residents:id,unit_id,name')
@@ -65,13 +66,13 @@ class DashboardController extends Controller
             ]);
 
         return Inertia::render('Dashboard', [
-            'collectedThisMonth' => (float) $collectedThisMonth,
+            'collectedThisQuarter' => (float) $collectedThisQuarter,
             'pendingDues' => max(0, (float) $pendingDues),
-            'totalExpensesThisMonth' => (float) $totalExpensesThisMonth,
+            'totalExpensesThisQuarter' => (float) $totalExpensesThisQuarter,
             'unitBalances' => $unitBalances,
             'reconciliation' => $reconciliation,
             'recentUploads' => $recentUploads,
-            'currentMonth' => now()->format('F Y'),
+            'currentQuarter' => BillingQuarter::label(BillingQuarter::current()),
         ]);
     }
 }

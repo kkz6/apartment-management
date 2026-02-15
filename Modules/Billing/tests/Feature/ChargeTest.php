@@ -9,7 +9,7 @@ it('can create a charge for a unit', function () {
         'unit_id' => $unit->id,
         'type' => 'maintenance',
         'amount' => 2000.00,
-        'billing_month' => '2026-02',
+        'billing_month' => '2026-Q1',
         'status' => 'pending',
     ]);
 

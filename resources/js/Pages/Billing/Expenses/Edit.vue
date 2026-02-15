@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
+import { Label } from '@/Components/ui/label';
+import { Input } from '@/Components/ui/input';
+import { Button } from '@/Components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
 interface Expense {
@@ -39,22 +40,24 @@ const submit = () => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
+            <h2 class="text-xl font-semibold leading-tight text-foreground">
                 Edit Expense
             </h2>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-2xl sm:px-6 lg:px-8">
-                <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                    <div class="p-6 text-gray-900">
+        <div class="max-w-2xl">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Edit Expense</CardTitle>
+                    </CardHeader>
+                    <CardContent>
                         <form @submit.prevent="submit" class="space-y-6">
                             <div>
-                                <InputLabel for="description" value="Description" />
-                                <TextInput
+                                <Label for="description">Description</Label>
+                                <Input
                                     id="description"
                                     type="text"
-                                    class="mt-1 block w-full"
+                                    class="mt-1"
                                     v-model="form.description"
                                     required
                                     autofocus
@@ -63,11 +66,11 @@ const submit = () => {
                             </div>
 
                             <div>
-                                <InputLabel for="amount" value="Amount" />
-                                <TextInput
+                                <Label for="amount">Amount</Label>
+                                <Input
                                     id="amount"
                                     type="number"
-                                    class="mt-1 block w-full"
+                                    class="mt-1"
                                     v-model="form.amount"
                                     required
                                     min="0.01"
@@ -77,11 +80,11 @@ const submit = () => {
                             </div>
 
                             <div>
-                                <InputLabel for="paid_date" value="Date Paid" />
-                                <TextInput
+                                <Label for="paid_date">Date Paid</Label>
+                                <Input
                                     id="paid_date"
                                     type="date"
-                                    class="mt-1 block w-full"
+                                    class="mt-1"
                                     v-model="form.paid_date"
                                     required
                                 />
@@ -89,11 +92,11 @@ const submit = () => {
                             </div>
 
                             <div>
-                                <InputLabel for="category" value="Category" />
+                                <Label for="category">Category</Label>
                                 <select
                                     id="category"
                                     v-model="form.category"
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    class="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                     required
                                 >
                                     <option value="electricity">Electricity</option>
@@ -106,11 +109,11 @@ const submit = () => {
                             </div>
 
                             <div>
-                                <InputLabel for="source" value="Source" />
+                                <Label for="source">Source</Label>
                                 <select
                                     id="source"
                                     v-model="form.source"
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    class="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                     required
                                 >
                                     <option value="gpay">GPay</option>
@@ -121,29 +124,27 @@ const submit = () => {
                             </div>
 
                             <div>
-                                <InputLabel for="reference_number" value="Reference Number" />
-                                <TextInput
+                                <Label for="reference_number">Reference Number</Label>
+                                <Input
                                     id="reference_number"
                                     type="text"
-                                    class="mt-1 block w-full"
+                                    class="mt-1"
                                     v-model="form.reference_number"
                                 />
                                 <InputError class="mt-2" :message="form.errors.reference_number" />
                             </div>
 
                             <div class="flex items-center gap-4">
-                                <PrimaryButton :disabled="form.processing">Update</PrimaryButton>
-                                <Link
-                                    :href="route('expenses.index')"
-                                    class="text-sm text-gray-600 underline hover:text-gray-900"
-                                >
-                                    Cancel
-                                </Link>
+                                <Button :disabled="form.processing">Update</Button>
+                                <Button variant="link" as-child>
+                                    <Link :href="route('expenses.index')">
+                                        Cancel
+                                    </Link>
+                                </Button>
                             </div>
                         </form>
-                    </div>
-                </div>
-            </div>
+                    </CardContent>
+                </Card>
         </div>
     </AuthenticatedLayout>
 </template>

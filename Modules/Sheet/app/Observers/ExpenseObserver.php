@@ -3,6 +3,7 @@
 namespace Modules\Sheet\Observers;
 
 use Modules\Billing\Models\Expense;
+use Modules\Billing\Support\BillingQuarter;
 use Modules\Sheet\Jobs\SyncToGoogleSheet;
 
 class ExpenseObserver
@@ -13,7 +14,7 @@ class ExpenseObserver
             return;
         }
 
-        $billingMonth = $expense->paid_date->format('Y-m');
+        $billingMonth = BillingQuarter::fromDate($expense->paid_date);
 
         SyncToGoogleSheet::dispatch($billingMonth);
     }
@@ -24,7 +25,7 @@ class ExpenseObserver
             return;
         }
 
-        $billingMonth = $expense->paid_date->format('Y-m');
+        $billingMonth = BillingQuarter::fromDate($expense->paid_date);
 
         SyncToGoogleSheet::dispatch($billingMonth);
     }

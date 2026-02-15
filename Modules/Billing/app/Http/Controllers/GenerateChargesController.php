@@ -19,7 +19,7 @@ class GenerateChargesController extends Controller
     public function store(Request $request, MaintenanceChargeGenerator $generator): RedirectResponse
     {
         $validated = $request->validate([
-            'billing_month' => ['required', 'string', 'max:7'],
+            'billing_month' => ['required', 'string', 'regex:/^\d{4}-Q[1-4]$/'],
             'due_date' => ['nullable', 'date'],
         ]);
 

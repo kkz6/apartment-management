@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
+import { Button } from '@/Components/ui/button';
+import { Input } from '@/Components/ui/input';
+import { Label } from '@/Components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 
 interface UnitOption {
     id: number;
@@ -68,22 +69,24 @@ const formatCurrency = (amount: string): string => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
+            <h2 class="text-xl font-semibold leading-tight text-foreground">
                 Record Payment
             </h2>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-2xl sm:px-6 lg:px-8">
-                <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                    <div class="p-6 text-gray-900">
+        <div class="max-w-2xl">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Payment Details</CardTitle>
+                    </CardHeader>
+                    <CardContent>
                         <form @submit.prevent="submit" class="space-y-6">
                             <div>
-                                <InputLabel for="unit_id" value="Unit" />
+                                <Label for="unit_id">Unit</Label>
                                 <select
                                     id="unit_id"
                                     v-model="form.unit_id"
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    class="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                     required
                                 >
                                     <option value="" disabled>Select a unit</option>
@@ -99,11 +102,11 @@ const formatCurrency = (amount: string): string => {
                             </div>
 
                             <div>
-                                <InputLabel for="charge_id" value="Charge (optional)" />
+                                <Label for="charge_id">Charge (optional)</Label>
                                 <select
                                     id="charge_id"
                                     v-model="form.charge_id"
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    class="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 >
                                     <option value="">No linked charge</option>
                                     <option
@@ -114,18 +117,18 @@ const formatCurrency = (amount: string): string => {
                                         {{ charge.description }} - {{ charge.billing_month }} ({{ formatCurrency(charge.amount) }}, {{ charge.status }})
                                     </option>
                                 </select>
-                                <p v-if="form.unit_id && filteredCharges.length === 0" class="mt-1 text-sm text-gray-500">
+                                <p v-if="form.unit_id && filteredCharges.length === 0" class="mt-1 text-sm text-muted-foreground">
                                     No pending charges for this unit.
                                 </p>
                                 <InputError class="mt-2" :message="form.errors.charge_id" />
                             </div>
 
                             <div>
-                                <InputLabel for="amount" value="Amount" />
-                                <TextInput
+                                <Label for="amount">Amount</Label>
+                                <Input
                                     id="amount"
                                     type="number"
-                                    class="mt-1 block w-full"
+                                    class="mt-1"
                                     v-model="form.amount"
                                     required
                                     min="0.01"
@@ -135,11 +138,11 @@ const formatCurrency = (amount: string): string => {
                             </div>
 
                             <div>
-                                <InputLabel for="paid_date" value="Date Paid" />
-                                <TextInput
+                                <Label for="paid_date">Date Paid</Label>
+                                <Input
                                     id="paid_date"
                                     type="date"
-                                    class="mt-1 block w-full"
+                                    class="mt-1"
                                     v-model="form.paid_date"
                                     required
                                 />
@@ -147,11 +150,11 @@ const formatCurrency = (amount: string): string => {
                             </div>
 
                             <div>
-                                <InputLabel for="source" value="Source" />
+                                <Label for="source">Source</Label>
                                 <select
                                     id="source"
                                     v-model="form.source"
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    class="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                     required
                                 >
                                     <option value="gpay">GPay</option>
@@ -162,29 +165,27 @@ const formatCurrency = (amount: string): string => {
                             </div>
 
                             <div>
-                                <InputLabel for="reference_number" value="Reference Number" />
-                                <TextInput
+                                <Label for="reference_number">Reference Number</Label>
+                                <Input
                                     id="reference_number"
                                     type="text"
-                                    class="mt-1 block w-full"
+                                    class="mt-1"
                                     v-model="form.reference_number"
                                 />
                                 <InputError class="mt-2" :message="form.errors.reference_number" />
                             </div>
 
                             <div class="flex items-center gap-4">
-                                <PrimaryButton :disabled="form.processing">Save</PrimaryButton>
-                                <Link
-                                    :href="route('payments.index')"
-                                    class="text-sm text-gray-600 underline hover:text-gray-900"
-                                >
-                                    Cancel
-                                </Link>
+                                <Button type="submit" :disabled="form.processing">Save</Button>
+                                <Button variant="link" as-child>
+                                    <Link :href="route('payments.index')">
+                                        Cancel
+                                    </Link>
+                                </Button>
                             </div>
                         </form>
-                    </div>
-                </div>
-            </div>
+                    </CardContent>
+                </Card>
         </div>
     </AuthenticatedLayout>
 </template>

@@ -30,13 +30,13 @@ beforeEach(function () {
     config(['services.google.sheet_id' => 'test-sheet-id']);
 });
 
-it('builds monthly tab data with payments and expenses', function () {
+it('builds quarterly tab data with payments and expenses', function () {
     $unit = Unit::factory()->create(['flat_number' => '101']);
     Resident::factory()->create(['unit_id' => $unit->id, 'name' => 'Karthick']);
     $charge = Charge::factory()->create([
         'unit_id' => $unit->id,
         'type' => 'maintenance',
-        'billing_month' => '2026-02',
+        'billing_month' => '2026-Q1',
     ]);
 
     Payment::factory()->create([
@@ -62,7 +62,7 @@ it('builds monthly tab data with payments and expenses', function () {
     });
 
     $service = new SheetSyncService;
-    $service->syncMonthlyTab('2026-02');
+    $service->syncMonthlyTab('2026-Q1');
 });
 
 it('builds summary tab data with unit charges and payments', function () {
@@ -72,7 +72,7 @@ it('builds summary tab data with unit charges and payments', function () {
     $charge = Charge::factory()->create([
         'unit_id' => $unit->id,
         'type' => 'maintenance',
-        'billing_month' => '2026-01',
+        'billing_month' => '2026-Q1',
         'amount' => 3000.00,
     ]);
 
@@ -96,7 +96,7 @@ it('builds summary tab data with unit charges and payments', function () {
 
 it('dispatches sync job when a payment is created', function () {
     $unit = Unit::factory()->create();
-    $charge = Charge::factory()->create(['unit_id' => $unit->id, 'billing_month' => '2026-02']);
+    $charge = Charge::factory()->create(['unit_id' => $unit->id, 'billing_month' => '2026-Q1']);
 
     Payment::factory()->create([
         'unit_id' => $unit->id,
@@ -105,7 +105,7 @@ it('dispatches sync job when a payment is created', function () {
     ]);
 
     Queue::assertPushed(SyncToGoogleSheet::class, function ($job) {
-        return $job->billingMonth === '2026-02';
+        return $job->billingMonth === '2026-Q1';
     });
 });
 
@@ -114,11 +114,11 @@ it('dispatches sync job when a charge is created', function () {
 
     Charge::factory()->create([
         'unit_id' => $unit->id,
-        'billing_month' => '2026-03',
+        'billing_month' => '2026-Q1',
     ]);
 
     Queue::assertPushed(SyncToGoogleSheet::class, function ($job) {
-        return $job->billingMonth === '2026-03';
+        return $job->billingMonth === '2026-Q1';
     });
 });
 
@@ -126,19 +126,19 @@ it('dispatches sync job when an expense is created', function () {
     Expense::factory()->create(['paid_date' => '2026-02-10']);
 
     Queue::assertPushed(SyncToGoogleSheet::class, function ($job) {
-        return $job->billingMonth === '2026-02';
+        return $job->billingMonth === '2026-Q1';
     });
 });
 
-it('generates correct month tab name format', function () {
+it('generates correct quarter tab name format', function () {
     $service = new SheetSyncService;
     $reflection = new ReflectionMethod($service, 'monthTabName');
 
-    expect($reflection->invoke($service, '2026-02'))->toBe('Feb 2026')
-        ->and($reflection->invoke($service, '2025-12'))->toBe('Dec 2025');
+    expect($reflection->invoke($service, '2026-Q1'))->toBe('Q1 2026')
+        ->and($reflection->invoke($service, '2025-Q4'))->toBe('Q4 2025');
 });
 
-it('syncs both monthly and summary tabs when billing month is provided', function () {
+it('syncs both monthly and summary tabs when billing quarter is provided', function () {
     $mock = Mockery::mock(Factory::class);
     $mock->shouldReceive('spreadsheet')->andReturn($mock);
     $mock->shouldReceive('sheet')->andReturn($mock);
@@ -148,11 +148,11 @@ it('syncs both monthly and summary tabs when billing month is provided', functio
 
     $service = new SheetSyncService;
 
-    $job = new SyncToGoogleSheet('2026-02');
+    $job = new SyncToGoogleSheet('2026-Q1');
     $job->handle($service);
 });
 
-it('syncs only summary tab when no billing month is provided', function () {
+it('syncs only summary tab when no billing quarter is provided', function () {
     $mock = Mockery::mock(Factory::class);
     $mock->shouldReceive('spreadsheet')->andReturn($mock);
     $mock->shouldReceive('sheet')->with('Summary')->andReturn($mock);

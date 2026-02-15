@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import Checkbox from '@/Components/Checkbox.vue';
 import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Button } from '@/Components/ui/button';
+import { Input } from '@/Components/ui/input';
+import { Label } from '@/Components/ui/label';
+import { Checkbox } from '@/Components/ui/checkbox';
+import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 
 interface UnitOption {
     id: number;
@@ -35,22 +36,24 @@ const submit = () => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
+            <h2 class="text-xl font-semibold leading-tight text-foreground">
                 Add Resident
             </h2>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-2xl sm:px-6 lg:px-8">
-                <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                    <div class="p-6 text-gray-900">
+        <div class="max-w-2xl">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>New Resident</CardTitle>
+                    </CardHeader>
+                    <CardContent>
                         <form @submit.prevent="submit" class="space-y-6">
                             <div>
-                                <InputLabel for="unit_id" value="Unit" />
+                                <Label for="unit_id">Unit</Label>
                                 <select
                                     id="unit_id"
                                     v-model="form.unit_id"
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    class="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                     required
                                 >
                                     <option value="" disabled>Select a unit</option>
@@ -66,11 +69,11 @@ const submit = () => {
                             </div>
 
                             <div>
-                                <InputLabel for="name" value="Name" />
-                                <TextInput
+                                <Label for="name">Name</Label>
+                                <Input
                                     id="name"
                                     type="text"
-                                    class="mt-1 block w-full"
+                                    class="mt-1"
                                     v-model="form.name"
                                     required
                                     autofocus
@@ -79,22 +82,22 @@ const submit = () => {
                             </div>
 
                             <div>
-                                <InputLabel for="phone" value="Phone" />
-                                <TextInput
+                                <Label for="phone">Phone</Label>
+                                <Input
                                     id="phone"
                                     type="text"
-                                    class="mt-1 block w-full"
+                                    class="mt-1"
                                     v-model="form.phone"
                                 />
                                 <InputError class="mt-2" :message="form.errors.phone" />
                             </div>
 
                             <div>
-                                <InputLabel for="email" value="Email" />
-                                <TextInput
+                                <Label for="email">Email</Label>
+                                <Input
                                     id="email"
                                     type="email"
-                                    class="mt-1 block w-full"
+                                    class="mt-1"
                                     v-model="form.email"
                                 />
                                 <InputError class="mt-2" :message="form.errors.email" />
@@ -106,34 +109,33 @@ const submit = () => {
                                     :checked="form.is_owner"
                                     @update:checked="form.is_owner = $event"
                                 />
-                                <InputLabel for="is_owner" value="Is Owner" class="ml-2" />
+                                <Label for="is_owner" class="ml-2">Is Owner</Label>
                                 <InputError class="mt-2" :message="form.errors.is_owner" />
                             </div>
 
                             <div>
-                                <InputLabel for="gpay_name" value="GPay Name" />
-                                <TextInput
+                                <Label for="gpay_name">GPay Name</Label>
+                                <Input
                                     id="gpay_name"
                                     type="text"
-                                    class="mt-1 block w-full"
+                                    class="mt-1"
                                     v-model="form.gpay_name"
                                 />
                                 <InputError class="mt-2" :message="form.errors.gpay_name" />
                             </div>
 
                             <div class="flex items-center gap-4">
-                                <PrimaryButton :disabled="form.processing">Save</PrimaryButton>
+                                <Button type="submit" :disabled="form.processing">Save</Button>
                                 <Link
                                     :href="route('residents.index')"
-                                    class="text-sm text-gray-600 underline hover:text-gray-900"
+                                    class="text-sm text-muted-foreground underline hover:text-foreground"
                                 >
                                     Cancel
                                 </Link>
                             </div>
                         </form>
-                    </div>
-                </div>
-            </div>
+                    </CardContent>
+                </Card>
         </div>
     </AuthenticatedLayout>
 </template>
