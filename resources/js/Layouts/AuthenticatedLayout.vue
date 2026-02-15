@@ -39,6 +39,24 @@ const showingNavigationDropdown = ref(false);
                                 >
                                     Dashboard
                                 </NavLink>
+                                <NavLink
+                                    :href="route('units.index')"
+                                    :active="route().current('units.*')"
+                                >
+                                    Units
+                                </NavLink>
+                                <NavLink
+                                    :href="route('residents.index')"
+                                    :active="route().current('residents.*')"
+                                >
+                                    Residents
+                                </NavLink>
+                                <NavLink
+                                    :href="route('maintenance-slabs.index')"
+                                    :active="route().current('maintenance-slabs.*')"
+                                >
+                                    Maintenance Slabs
+                                </NavLink>
                             </div>
                         </div>
 
@@ -145,6 +163,24 @@ const showingNavigationDropdown = ref(false);
                             :active="route().current('dashboard')"
                         >
                             Dashboard
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('units.index')"
+                            :active="route().current('units.*')"
+                        >
+                            Units
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('residents.index')"
+                            :active="route().current('residents.*')"
+                        >
+                            Residents
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('maintenance-slabs.index')"
+                            :active="route().current('maintenance-slabs.*')"
+                        >
+                            Maintenance Slabs
                         </ResponsiveNavLink>
                     </div>
 
