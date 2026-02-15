@@ -57,6 +57,24 @@ const showingNavigationDropdown = ref(false);
                                 >
                                     Maintenance Slabs
                                 </NavLink>
+                                <NavLink
+                                    :href="route('charges.index')"
+                                    :active="route().current('charges.*')"
+                                >
+                                    Charges
+                                </NavLink>
+                                <NavLink
+                                    :href="route('payments.index')"
+                                    :active="route().current('payments.*')"
+                                >
+                                    Payments
+                                </NavLink>
+                                <NavLink
+                                    :href="route('expenses.index')"
+                                    :active="route().current('expenses.*')"
+                                >
+                                    Expenses
+                                </NavLink>
                             </div>
                         </div>
 
@@ -181,6 +199,24 @@ const showingNavigationDropdown = ref(false);
                             :active="route().current('maintenance-slabs.*')"
                         >
                             Maintenance Slabs
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('charges.index')"
+                            :active="route().current('charges.*')"
+                        >
+                            Charges
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('payments.index')"
+                            :active="route().current('payments.*')"
+                        >
+                            Payments
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('expenses.index')"
+                            :active="route().current('expenses.*')"
+                        >
+                            Expenses
                         </ResponsiveNavLink>
                     </div>
 
