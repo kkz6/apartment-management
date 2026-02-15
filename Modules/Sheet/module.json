@@ -1,0 +1,11 @@
+{
+    "name": "Sheet",
+    "alias": "sheet",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Sheet\\Providers\\SheetServiceProvider"
+    ],
+    "files": []
+}

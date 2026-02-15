@@ -12,6 +12,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "nwidart/laravel-modules": "*",
+        "revolution/laravel-google-sheets": "^7.1",
         "tightenco/ziggy": "^2.0"
     },
     "require-dev": {
