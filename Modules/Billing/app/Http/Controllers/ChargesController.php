@@ -23,7 +23,7 @@ class ChargesController extends Controller
         }
 
         return Inertia::render('Billing/Charges/Index', [
-            'charges' => $query->get(),
+            'charges' => $query->paginate(15),
             'filters' => [
                 'billing_month' => $request->input('billing_month', ''),
             ],
@@ -45,7 +45,7 @@ class ChargesController extends Controller
             'type' => ['required', 'in:maintenance,ad-hoc'],
             'description' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0'],
-            'billing_month' => ['required', 'string', 'max:7'],
+            'billing_month' => ['required', 'string', 'regex:/^\d{4}-Q[1-4]$/'],
             'due_date' => ['nullable', 'date'],
         ]);
 
@@ -84,7 +84,7 @@ class ChargesController extends Controller
             'type' => ['required', 'in:maintenance,ad-hoc'],
             'description' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0'],
-            'billing_month' => ['required', 'string', 'max:7'],
+            'billing_month' => ['required', 'string', 'regex:/^\d{4}-Q[1-4]$/'],
             'due_date' => ['nullable', 'date'],
         ]);
 

@@ -14,7 +14,7 @@ class UnitsController extends Controller
     public function index(): Response
     {
         return Inertia::render('Apartment/Units/Index', [
-            'units' => Unit::withCount('residents')->orderBy('flat_number')->get(),
+            'units' => Unit::withCount('residents')->orderBy('flat_number')->paginate(15),
         ]);
     }
 

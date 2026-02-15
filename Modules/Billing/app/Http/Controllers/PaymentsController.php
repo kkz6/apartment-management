@@ -18,7 +18,7 @@ class PaymentsController extends Controller
         return Inertia::render('Billing/Payments/Index', [
             'payments' => Payment::with(['unit:id,flat_number', 'charge:id,description,billing_month,amount'])
                 ->orderByDesc('paid_date')
-                ->get(),
+                ->paginate(15),
         ]);
     }
 

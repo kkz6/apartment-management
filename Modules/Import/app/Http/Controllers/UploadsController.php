@@ -17,9 +17,10 @@ class UploadsController extends Controller
     {
         return Inertia::render('Import/Uploads/Index', [
             'uploads' => Upload::with('uploader')
+                ->withCount('parsedTransactions as transactions_count')
                 ->latest()
-                ->get()
-                ->map(fn ($u) => [
+                ->paginate(15)
+                ->through(fn ($u) => [
                     'id' => $u->id,
                     'file_path' => $u->file_path,
                     'type' => $u->type,
@@ -27,7 +28,7 @@ class UploadsController extends Controller
                     'processed_at' => $u->processed_at?->format('d-m-Y H:i'),
                     'uploaded_by' => $u->uploader?->name,
                     'created_at' => $u->created_at->format('d-m-Y H:i'),
-                    'transactions_count' => $u->parsedTransactions()->count(),
+                    'transactions_count' => $u->transactions_count,
                 ]),
         ]);
     }
@@ -42,6 +43,7 @@ class UploadsController extends Controller
         $validated = $request->validate([
             'file' => ['required', 'file', 'max:10240'],
             'type' => ['required', 'in:gpay_screenshot,bank_statement'],
+            'password' => ['nullable', 'string', 'max:255'],
         ]);
 
         $path = $request->file('file')->store('uploads');
@@ -56,7 +58,8 @@ class UploadsController extends Controller
         if ($upload->type === 'gpay_screenshot') {
             ProcessGpayScreenshot::dispatch($upload);
         } else {
-            ProcessBankStatement::dispatch($upload);
+            $password = $validated['password'] ?? null;
+            ProcessBankStatement::dispatch($upload, $password ?: null);
         }
 
         return redirect()->route('uploads.index')

@@ -14,7 +14,7 @@ class ExpensesController extends Controller
     public function index(): Response
     {
         return Inertia::render('Billing/Expenses/Index', [
-            'expenses' => Expense::orderByDesc('paid_date')->get(),
+            'expenses' => Expense::orderByDesc('paid_date')->paginate(15),
         ]);
     }
 

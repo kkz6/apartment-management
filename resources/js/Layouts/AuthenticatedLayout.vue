@@ -1,292 +1,230 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
-import Dropdown from '@/Components/Dropdown.vue';
-import DropdownLink from '@/Components/DropdownLink.vue';
-import NavLink from '@/Components/NavLink.vue';
-import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage, router } from '@inertiajs/vue3';
+import { Button } from '@/Components/ui/button';
+import { Separator } from '@/Components/ui/separator';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/Components/ui/sheet';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/Components/ui/dropdown-menu';
+import { Toaster } from '@/Components/ui/sonner';
+import {
+    LayoutDashboard,
+    Building2,
+    Users,
+    Sliders,
+    Receipt,
+    CreditCard,
+    Wallet,
+    Upload,
+    ListChecks,
+    Menu,
+    User,
+    LogOut,
+    ChevronDown,
+} from 'lucide-vue-next';
 
-const showingNavigationDropdown = ref(false);
+const page = usePage();
+const mobileOpen = ref(false);
+
+interface NavItem {
+    label: string;
+    href: string;
+    routeMatch: string;
+    icon: any;
+}
+
+interface NavGroup {
+    title: string;
+    items: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
+    {
+        title: '',
+        items: [
+            { label: 'Dashboard', href: route('dashboard'), routeMatch: 'dashboard', icon: LayoutDashboard },
+        ],
+    },
+    {
+        title: 'Apartment',
+        items: [
+            { label: 'Units', href: route('units.index'), routeMatch: 'units.*', icon: Building2 },
+            { label: 'Residents', href: route('residents.index'), routeMatch: 'residents.*', icon: Users },
+            { label: 'Maintenance Slabs', href: route('maintenance-slabs.index'), routeMatch: 'maintenance-slabs.*', icon: Sliders },
+        ],
+    },
+    {
+        title: 'Billing',
+        items: [
+            { label: 'Charges', href: route('charges.index'), routeMatch: 'charges.*', icon: Receipt },
+            { label: 'Payments', href: route('payments.index'), routeMatch: 'payments.*', icon: CreditCard },
+            { label: 'Expenses', href: route('expenses.index'), routeMatch: 'expenses.*', icon: Wallet },
+        ],
+    },
+    {
+        title: 'Import',
+        items: [
+            { label: 'Uploads', href: route('uploads.index'), routeMatch: 'uploads.*', icon: Upload },
+            { label: 'Review Queue', href: route('review-queue.index'), routeMatch: 'review-queue.*', icon: ListChecks },
+        ],
+    },
+];
+
+const isActive = (match: string): boolean => {
+    return route().current(match) ?? false;
+};
+
+const logout = () => {
+    router.post(route('logout'));
+};
+
+const navigateMobile = (href: string) => {
+    mobileOpen.value = false;
+    router.visit(href);
+};
 </script>
 
 <template>
-    <div>
-        <div class="min-h-screen bg-gray-100">
-            <nav
-                class="border-b border-gray-100 bg-white"
-            >
-                <!-- Primary Navigation Menu -->
-                <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div class="flex h-16 justify-between">
-                        <div class="flex">
-                            <!-- Logo -->
-                            <div class="flex shrink-0 items-center">
-                                <Link :href="route('dashboard')">
-                                    <ApplicationLogo
-                                        class="block h-9 w-auto fill-current text-gray-800"
-                                    />
-                                </Link>
-                            </div>
+    <div class="min-h-screen bg-background">
+        <Toaster position="top-right" />
 
-                            <!-- Navigation Links -->
-                            <div
-                                class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex"
-                            >
-                                <NavLink
-                                    :href="route('dashboard')"
-                                    :active="route().current('dashboard')"
-                                >
-                                    Dashboard
-                                </NavLink>
-                                <NavLink
-                                    :href="route('units.index')"
-                                    :active="route().current('units.*')"
-                                >
-                                    Units
-                                </NavLink>
-                                <NavLink
-                                    :href="route('residents.index')"
-                                    :active="route().current('residents.*')"
-                                >
-                                    Residents
-                                </NavLink>
-                                <NavLink
-                                    :href="route('maintenance-slabs.index')"
-                                    :active="route().current('maintenance-slabs.*')"
-                                >
-                                    Maintenance Slabs
-                                </NavLink>
-                                <NavLink
-                                    :href="route('charges.index')"
-                                    :active="route().current('charges.*')"
-                                >
-                                    Charges
-                                </NavLink>
-                                <NavLink
-                                    :href="route('payments.index')"
-                                    :active="route().current('payments.*')"
-                                >
-                                    Payments
-                                </NavLink>
-                                <NavLink
-                                    :href="route('expenses.index')"
-                                    :active="route().current('expenses.*')"
-                                >
-                                    Expenses
-                                </NavLink>
-                                <NavLink
-                                    :href="route('uploads.index')"
-                                    :active="route().current('uploads.*')"
-                                >
-                                    Uploads
-                                </NavLink>
-                                <NavLink
-                                    :href="route('review-queue.index')"
-                                    :active="route().current('review-queue.*')"
-                                >
-                                    Review Queue
-                                </NavLink>
-                            </div>
-                        </div>
+        <!-- Desktop Sidebar -->
+        <aside class="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r bg-card md:flex">
+            <!-- Logo -->
+            <div class="flex h-14 items-center border-b px-4">
+                <Link :href="route('dashboard')" class="flex items-center gap-2">
+                    <ApplicationLogo class="h-8 w-auto fill-current text-foreground" />
+                    <span class="text-lg font-semibold text-foreground">Apartment</span>
+                </Link>
+            </div>
 
-                        <div class="hidden sm:ms-6 sm:flex sm:items-center">
-                            <!-- Settings Dropdown -->
-                            <div class="relative ms-3">
-                                <Dropdown align="right" width="48">
-                                    <template #trigger>
-                                        <span class="inline-flex rounded-md">
-                                            <button
-                                                type="button"
-                                                class="inline-flex items-center rounded-md border border-transparent bg-white px-3 py-2 text-sm font-medium leading-4 text-gray-500 transition duration-150 ease-in-out hover:text-gray-700 focus:outline-none"
-                                            >
-                                                {{ $page.props.auth.user.name }}
-
-                                                <svg
-                                                    class="-me-0.5 ms-2 h-4 w-4"
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    viewBox="0 0 20 20"
-                                                    fill="currentColor"
-                                                >
-                                                    <path
-                                                        fill-rule="evenodd"
-                                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                                        clip-rule="evenodd"
-                                                    />
-                                                </svg>
-                                            </button>
-                                        </span>
-                                    </template>
-
-                                    <template #content>
-                                        <DropdownLink
-                                            :href="route('profile.edit')"
-                                        >
-                                            Profile
-                                        </DropdownLink>
-                                        <DropdownLink
-                                            :href="route('logout')"
-                                            method="post"
-                                            as="button"
-                                        >
-                                            Log Out
-                                        </DropdownLink>
-                                    </template>
-                                </Dropdown>
-                            </div>
-                        </div>
-
-                        <!-- Hamburger -->
-                        <div class="-me-2 flex items-center sm:hidden">
-                            <button
-                                @click="
-                                    showingNavigationDropdown =
-                                        !showingNavigationDropdown
-                                "
-                                class="inline-flex items-center justify-center rounded-md p-2 text-gray-400 transition duration-150 ease-in-out hover:bg-gray-100 hover:text-gray-500 focus:bg-gray-100 focus:text-gray-500 focus:outline-none"
-                            >
-                                <svg
-                                    class="h-6 w-6"
-                                    stroke="currentColor"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        :class="{
-                                            hidden: showingNavigationDropdown,
-                                            'inline-flex':
-                                                !showingNavigationDropdown,
-                                        }"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M4 6h16M4 12h16M4 18h16"
-                                    />
-                                    <path
-                                        :class="{
-                                            hidden: !showingNavigationDropdown,
-                                            'inline-flex':
-                                                showingNavigationDropdown,
-                                        }"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Responsive Navigation Menu -->
-                <div
-                    :class="{
-                        block: showingNavigationDropdown,
-                        hidden: !showingNavigationDropdown,
-                    }"
-                    class="sm:hidden"
-                >
-                    <div class="space-y-1 pb-3 pt-2">
-                        <ResponsiveNavLink
-                            :href="route('dashboard')"
-                            :active="route().current('dashboard')"
-                        >
-                            Dashboard
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
-                            :href="route('units.index')"
-                            :active="route().current('units.*')"
-                        >
-                            Units
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
-                            :href="route('residents.index')"
-                            :active="route().current('residents.*')"
-                        >
-                            Residents
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
-                            :href="route('maintenance-slabs.index')"
-                            :active="route().current('maintenance-slabs.*')"
-                        >
-                            Maintenance Slabs
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
-                            :href="route('charges.index')"
-                            :active="route().current('charges.*')"
-                        >
-                            Charges
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
-                            :href="route('payments.index')"
-                            :active="route().current('payments.*')"
-                        >
-                            Payments
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
-                            :href="route('expenses.index')"
-                            :active="route().current('expenses.*')"
-                        >
-                            Expenses
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
-                            :href="route('uploads.index')"
-                            :active="route().current('uploads.*')"
-                        >
-                            Uploads
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
-                            :href="route('review-queue.index')"
-                            :active="route().current('review-queue.*')"
-                        >
-                            Review Queue
-                        </ResponsiveNavLink>
-                    </div>
-
-                    <!-- Responsive Settings Options -->
-                    <div
-                        class="border-t border-gray-200 pb-1 pt-4"
+            <!-- Navigation -->
+            <nav class="flex-1 overflow-y-auto px-3 py-4">
+                <template v-for="(group, gi) in navGroups" :key="gi">
+                    <Separator v-if="gi > 0" class="my-3" />
+                    <p
+                        v-if="group.title"
+                        class="mb-1 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
                     >
-                        <div class="px-4">
-                            <div
-                                class="text-base font-medium text-gray-800"
-                            >
-                                {{ $page.props.auth.user.name }}
-                            </div>
-                            <div class="text-sm font-medium text-gray-500">
-                                {{ $page.props.auth.user.email }}
-                            </div>
-                        </div>
-
-                        <div class="mt-3 space-y-1">
-                            <ResponsiveNavLink :href="route('profile.edit')">
-                                Profile
-                            </ResponsiveNavLink>
-                            <ResponsiveNavLink
-                                :href="route('logout')"
-                                method="post"
-                                as="button"
-                            >
-                                Log Out
-                            </ResponsiveNavLink>
-                        </div>
-                    </div>
-                </div>
+                        {{ group.title }}
+                    </p>
+                    <Link
+                        v-for="item in group.items"
+                        :key="item.routeMatch"
+                        :href="item.href"
+                        class="flex items-center gap-3 rounded-md px-2 py-2 text-sm font-medium transition-colors"
+                        :class="isActive(item.routeMatch)
+                            ? 'bg-accent text-accent-foreground'
+                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'"
+                    >
+                        <component :is="item.icon" class="h-4 w-4" />
+                        {{ item.label }}
+                    </Link>
+                </template>
             </nav>
 
+            <!-- User Dropdown at bottom -->
+            <div class="border-t p-3">
+                <DropdownMenu>
+                    <DropdownMenuTrigger as-child>
+                        <Button variant="ghost" class="w-full justify-start gap-2">
+                            <User class="h-4 w-4" />
+                            <span class="truncate">{{ $page.props.auth.user.name }}</span>
+                            <ChevronDown class="ml-auto h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" class="w-56">
+                        <DropdownMenuItem as-child>
+                            <Link :href="route('profile.edit')" class="flex w-full items-center gap-2">
+                                <User class="h-4 w-4" />
+                                Profile
+                            </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem @click="logout" class="flex items-center gap-2">
+                            <LogOut class="h-4 w-4" />
+                            Log Out
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+        </aside>
+
+        <!-- Mobile Header -->
+        <div class="sticky top-0 z-20 flex h-14 items-center border-b bg-card px-4 md:hidden">
+            <Sheet v-model:open="mobileOpen">
+                <SheetTrigger as-child>
+                    <Button variant="ghost" size="icon">
+                        <Menu class="h-5 w-5" />
+                    </Button>
+                </SheetTrigger>
+                <SheetContent side="left" class="w-64 p-0">
+                    <SheetTitle class="sr-only">Navigation</SheetTitle>
+                    <div class="flex h-14 items-center border-b px-4">
+                        <ApplicationLogo class="h-8 w-auto fill-current text-foreground" />
+                        <span class="ml-2 text-lg font-semibold text-foreground">Apartment</span>
+                    </div>
+                    <nav class="flex-1 overflow-y-auto px-3 py-4">
+                        <template v-for="(group, gi) in navGroups" :key="gi">
+                            <Separator v-if="gi > 0" class="my-3" />
+                            <p
+                                v-if="group.title"
+                                class="mb-1 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                            >
+                                {{ group.title }}
+                            </p>
+                            <button
+                                v-for="item in group.items"
+                                :key="item.routeMatch"
+                                @click="navigateMobile(item.href)"
+                                class="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm font-medium transition-colors"
+                                :class="isActive(item.routeMatch)
+                                    ? 'bg-accent text-accent-foreground'
+                                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'"
+                            >
+                                <component :is="item.icon" class="h-4 w-4" />
+                                {{ item.label }}
+                            </button>
+                        </template>
+                    </nav>
+                    <div class="border-t p-3">
+                        <button
+                            @click="navigateMobile(route('profile.edit'))"
+                            class="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent"
+                        >
+                            <User class="h-4 w-4" />
+                            Profile
+                        </button>
+                        <button
+                            @click="logout"
+                            class="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent"
+                        >
+                            <LogOut class="h-4 w-4" />
+                            Log Out
+                        </button>
+                    </div>
+                </SheetContent>
+            </Sheet>
+            <span class="ml-3 text-lg font-semibold text-foreground">Apartment</span>
+        </div>
+
+        <!-- Main Content -->
+        <div class="md:pl-64">
             <!-- Page Heading -->
-            <header
-                class="bg-white shadow"
-                v-if="$slots.header"
-            >
-                <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+            <header v-if="$slots.header" class="sticky top-0 z-20 flex h-14 items-center border-b bg-card px-4 sm:px-6 lg:px-8">
+                <div class="w-full">
                     <slot name="header" />
                 </div>
             </header>
 
             <!-- Page Content -->
-            <main>
+            <main class="p-4 sm:p-6 lg:p-8">
                 <slot />
             </main>
         </div>

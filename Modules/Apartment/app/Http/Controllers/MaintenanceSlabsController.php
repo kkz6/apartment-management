@@ -16,7 +16,7 @@ class MaintenanceSlabsController extends Controller
         return Inertia::render('Apartment/MaintenanceSlabs/Index', [
             'slabs' => MaintenanceSlab::orderBy('flat_type')
                 ->orderByDesc('effective_from')
-                ->get(),
+                ->paginate(15),
         ]);
     }
 

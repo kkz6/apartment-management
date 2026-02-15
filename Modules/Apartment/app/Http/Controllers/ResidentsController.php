@@ -15,7 +15,7 @@ class ResidentsController extends Controller
     public function index(): Response
     {
         return Inertia::render('Apartment/Residents/Index', [
-            'residents' => Resident::with('unit:id,flat_number')->orderBy('name')->get(),
+            'residents' => Resident::with('unit:id,flat_number')->orderBy('name')->paginate(15),
         ]);
     }
 

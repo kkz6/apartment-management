@@ -2,6 +2,23 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import { Card, CardContent } from '@/Components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
+import { Badge } from '@/Components/ui/badge';
+import { Button } from '@/Components/ui/button';
+import { Label } from '@/Components/ui/label';
+import { Alert, AlertDescription } from '@/Components/ui/alert';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/Components/ui/alert-dialog';
 
 interface Resident {
     id: number;
@@ -81,9 +98,7 @@ const assignExpense = (transactionId: number) => {
 };
 
 const dismiss = (transactionId: number) => {
-    if (confirm('Are you sure you want to dismiss this transaction?')) {
-        router.post(route('review-queue.dismiss', transactionId));
-    }
+    router.post(route('review-queue.dismiss', transactionId));
 };
 
 const formatCurrency = (amount: string): string => {
@@ -94,14 +109,22 @@ const formatCurrency = (amount: string): string => {
     }).format(Number(amount));
 };
 
-const directionBadgeClass = (direction: string): string => {
+const formatDate = (date: string): string => {
+    return new Date(date).toLocaleDateString('en-IN', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+    });
+};
+
+const directionBadgeVariant = (direction: string): 'default' | 'destructive' | 'outline' => {
     switch (direction) {
         case 'credit':
-            return 'inline-flex rounded-full bg-green-100 px-2 text-xs font-semibold leading-5 text-green-800';
+            return 'default';
         case 'debit':
-            return 'inline-flex rounded-full bg-red-100 px-2 text-xs font-semibold leading-5 text-red-800';
+            return 'destructive';
         default:
-            return 'inline-flex rounded-full bg-gray-100 px-2 text-xs font-semibold leading-5 text-gray-800';
+            return 'outline';
     }
 };
 
@@ -123,107 +146,108 @@ const sourceLabel = (type: string | null): string => {
     <AuthenticatedLayout>
         <template #header>
             <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold leading-tight text-gray-800">
+                <h2 class="text-xl font-semibold leading-tight text-foreground">
                     Review Queue
                 </h2>
-                <span
-                    v-if="transactions.length"
-                    class="inline-flex items-center rounded-full bg-yellow-100 px-3 py-1 text-sm font-medium text-yellow-800"
-                >
+                <Badge v-if="transactions.length" variant="outline">
                     {{ transactions.length }} unmatched
-                </span>
+                </Badge>
             </div>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                <div
-                    v-if="flash?.success"
-                    class="mb-4 rounded-md bg-green-50 p-4"
-                >
-                    <p class="text-sm font-medium text-green-800">
-                        {{ flash.success }}
-                    </p>
-                </div>
+        <Alert v-if="flash?.success" class="mb-4">
+                    <AlertDescription>{{ flash.success }}</AlertDescription>
+                </Alert>
 
-                <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                    <div class="p-6 text-gray-900">
+                <Card>
+                    <CardContent class="p-0">
                         <div v-if="transactions.length">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead>
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                                            Sender
-                                        </th>
-                                        <th class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                                            Amount
-                                        </th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                                            Date
-                                        </th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                                            Direction
-                                        </th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                                            Source
-                                        </th>
-                                        <th class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                                            Actions
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-200 bg-white">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Sender</TableHead>
+                                        <TableHead class="text-right">Amount</TableHead>
+                                        <TableHead>Date</TableHead>
+                                        <TableHead>Direction</TableHead>
+                                        <TableHead>Source</TableHead>
+                                        <TableHead class="text-right">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
                                     <template v-for="txn in transactions" :key="txn.id">
-                                        <tr>
-                                            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                                        <TableRow>
+                                            <TableCell class="font-medium">
                                                 {{ txn.sender_name ?? '-' }}
-                                            </td>
-                                            <td class="whitespace-nowrap px-6 py-4 text-right text-sm text-gray-900">
+                                            </TableCell>
+                                            <TableCell class="text-right">
                                                 {{ formatCurrency(txn.amount) }}
-                                            </td>
-                                            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                                                {{ txn.date }}
-                                            </td>
-                                            <td class="whitespace-nowrap px-6 py-4 text-sm">
-                                                <span :class="directionBadgeClass(txn.direction)">
+                                            </TableCell>
+                                            <TableCell class="text-muted-foreground">
+                                                {{ formatDate(txn.date) }}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge :variant="directionBadgeVariant(txn.direction)">
                                                     {{ txn.direction }}
-                                                </span>
-                                            </td>
-                                            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                                                {{ sourceLabel(txn.upload_type) }}
-                                            </td>
-                                            <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                                                <button
-                                                    @click="toggleRow(txn.id, 'payment')"
-                                                    class="text-indigo-600 hover:text-indigo-900"
-                                                >
-                                                    Assign to Unit
-                                                </button>
-                                                <button
-                                                    @click="toggleRow(txn.id, 'expense')"
-                                                    class="ml-3 text-amber-600 hover:text-amber-900"
-                                                >
-                                                    Expense
-                                                </button>
-                                                <button
-                                                    @click="dismiss(txn.id)"
-                                                    class="ml-3 text-gray-500 hover:text-gray-700"
-                                                >
-                                                    Dismiss
-                                                </button>
-                                            </td>
-                                        </tr>
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline">
+                                                    {{ sourceLabel(txn.upload_type) }}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell class="text-right">
+                                                <div class="flex items-center justify-end gap-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        @click="toggleRow(txn.id, 'payment')"
+                                                    >
+                                                        Assign to Unit
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        @click="toggleRow(txn.id, 'expense')"
+                                                    >
+                                                        Expense
+                                                    </Button>
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger as-child>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                class="text-muted-foreground"
+                                                            >
+                                                                Dismiss
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>Dismiss transaction?</AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    Are you sure you want to dismiss this transaction? This action cannot be undone.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                <AlertDialogAction @click="dismiss(txn.id)">
+                                                                    Dismiss
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
 
-                                        <tr v-if="expandedRow === txn.id && activeAction === 'payment'">
-                                            <td colspan="6" class="bg-gray-50 px-6 py-4">
+                                        <TableRow v-if="expandedRow === txn.id && activeAction === 'payment'" class="bg-muted/50">
+                                            <TableCell :colspan="6">
                                                 <div class="flex items-end gap-4">
                                                     <div class="flex-1">
-                                                        <label class="block text-sm font-medium text-gray-700">
-                                                            Select Unit
-                                                        </label>
+                                                        <Label>Select Unit</Label>
                                                         <select
                                                             v-model="selectedUnitId"
-                                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                                            class="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                                         >
                                                             <option value="" disabled>Choose a unit</option>
                                                             <option
@@ -238,33 +262,32 @@ const sourceLabel = (type: string | null): string => {
                                                             </option>
                                                         </select>
                                                     </div>
-                                                    <button
-                                                        @click="assignPayment(txn.id)"
+                                                    <Button
+                                                        size="sm"
                                                         :disabled="!selectedUnitId"
-                                                        class="inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+                                                        @click="assignPayment(txn.id)"
                                                     >
                                                         Assign
-                                                    </button>
-                                                    <button
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
                                                         @click="expandedRow = null; activeAction = null"
-                                                        class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                                                     >
                                                         Cancel
-                                                    </button>
+                                                    </Button>
                                                 </div>
-                                            </td>
-                                        </tr>
+                                            </TableCell>
+                                        </TableRow>
 
-                                        <tr v-if="expandedRow === txn.id && activeAction === 'expense'">
-                                            <td colspan="6" class="bg-gray-50 px-6 py-4">
+                                        <TableRow v-if="expandedRow === txn.id && activeAction === 'expense'" class="bg-muted/50">
+                                            <TableCell :colspan="6">
                                                 <div class="flex items-end gap-4">
                                                     <div class="flex-1">
-                                                        <label class="block text-sm font-medium text-gray-700">
-                                                            Expense Category
-                                                        </label>
+                                                        <Label>Expense Category</Label>
                                                         <select
                                                             v-model="selectedCategory"
-                                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                                            class="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                                         >
                                                             <option value="" disabled>Choose a category</option>
                                                             <option value="electricity">Electricity</option>
@@ -274,33 +297,32 @@ const sourceLabel = (type: string | null): string => {
                                                             <option value="other">Other</option>
                                                         </select>
                                                     </div>
-                                                    <button
-                                                        @click="assignExpense(txn.id)"
+                                                    <Button
+                                                        size="sm"
                                                         :disabled="!selectedCategory"
-                                                        class="inline-flex items-center rounded-md border border-transparent bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 disabled:opacity-50"
+                                                        @click="assignExpense(txn.id)"
                                                     >
                                                         Mark as Expense
-                                                    </button>
-                                                    <button
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
                                                         @click="expandedRow = null; activeAction = null"
-                                                        class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                                                     >
                                                         Cancel
-                                                    </button>
+                                                    </Button>
                                                 </div>
-                                            </td>
-                                        </tr>
+                                            </TableCell>
+                                        </TableRow>
                                     </template>
-                                </tbody>
-                            </table>
+                                </TableBody>
+                            </Table>
                         </div>
 
-                        <p v-else class="text-gray-500">
+                        <p v-else class="p-6 text-muted-foreground">
                             No unmatched transactions. All transactions have been reviewed.
                         </p>
-                    </div>
-                </div>
-            </div>
-        </div>
+                    </CardContent>
+                </Card>
     </AuthenticatedLayout>
 </template>
