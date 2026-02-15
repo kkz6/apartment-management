@@ -75,6 +75,18 @@ const showingNavigationDropdown = ref(false);
                                 >
                                     Expenses
                                 </NavLink>
+                                <NavLink
+                                    :href="route('uploads.index')"
+                                    :active="route().current('uploads.*')"
+                                >
+                                    Uploads
+                                </NavLink>
+                                <NavLink
+                                    :href="route('review-queue.index')"
+                                    :active="route().current('review-queue.*')"
+                                >
+                                    Review Queue
+                                </NavLink>
                             </div>
                         </div>
 
@@ -217,6 +229,18 @@ const showingNavigationDropdown = ref(false);
                             :active="route().current('expenses.*')"
                         >
                             Expenses
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('uploads.index')"
+                            :active="route().current('uploads.*')"
+                        >
+                            Uploads
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('review-queue.index')"
+                            :active="route().current('review-queue.*')"
+                        >
+                            Review Queue
                         </ResponsiveNavLink>
                     </div>
 

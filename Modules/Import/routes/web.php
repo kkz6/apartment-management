@@ -1,8 +1,14 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Import\Http\Controllers\ImportController;
+use Modules\Import\Http\Controllers\ReviewQueueController;
+use Modules\Import\Http\Controllers\UploadsController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::resource('imports', ImportController::class)->names('import');
+    Route::resource('uploads', UploadsController::class)->only(['index', 'create', 'store', 'destroy']);
+
+    Route::get('review-queue', [ReviewQueueController::class, 'index'])->name('review-queue.index');
+    Route::post('review-queue/{parsedTransaction}/assign-payment', [ReviewQueueController::class, 'assignPayment'])->name('review-queue.assign-payment');
+    Route::post('review-queue/{parsedTransaction}/assign-expense', [ReviewQueueController::class, 'assignExpense'])->name('review-queue.assign-expense');
+    Route::post('review-queue/{parsedTransaction}/dismiss', [ReviewQueueController::class, 'dismiss'])->name('review-queue.dismiss');
 });
