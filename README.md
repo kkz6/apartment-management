@@ -1,59 +1,195 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Apartment Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A full-stack apartment management application built for Indian residential complexes. Handles unit management, quarterly billing, payment reconciliation (GPay + HDFC bank statements), and real-time Google Sheets sync.
 
-## About Laravel
+## Tech Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Backend:** Laravel 12, PHP 8.2+
+- **Frontend:** Vue 3 + TypeScript, Inertia.js, Tailwind CSS 4, shadcn/ui (reka-ui)
+- **AI/OCR:** Laravel AI SDK with Anthropic Claude (GPay screenshot OCR, PDF parsing)
+- **Sheets:** Google Sheets API via `revolution/laravel-google-sheets`
+- **Database:** SQLite (dev), MySQL/PostgreSQL supported
+- **Testing:** Pest PHP
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Features
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+| Feature | Description |
+|---------|-------------|
+| **Unit Management** | Add/edit apartment units with flat type, floor, and area |
+| **Resident Tracking** | Manage occupants with contact info and GPay names |
+| **Maintenance Rates** | Configure per-flat-type quarterly charge slabs |
+| **Quarterly Billing** | Generate and manage maintenance charges per quarter |
+| **Payment Recording** | Track payments from GPay, bank transfer, and cash |
+| **Expense Management** | Record building expenses (electricity, water, services) |
+| **GPay Screenshot Import** | AI-powered OCR to extract transaction data from screenshots |
+| **Bank Statement Import** | Parse HDFC bank statement PDFs (supports password-protected files) |
+| **Auto-Reconciliation** | Match imported transactions to payments/expenses via fingerprinting |
+| **Review Queue** | Manually verify and assign unmatched transactions |
+| **Google Sheets Sync** | Event-driven sync of billing data to Google Sheets |
+| **Dashboard** | Quarterly collections, pending dues, unit balances, reconciliation status |
+| **Server-Side Pagination** | All list pages paginated at 15 rows with Inertia navigation |
 
-## Learning Laravel
+## Module Architecture
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+The app uses [nwidart/laravel-modules](https://github.com/nWidart/laravel-modules) with four modules:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```
+Modules/
+  Apartment/   # Unit, Resident, MaintenanceSlab
+  Billing/     # Charge, Payment, Expense, MaintenanceChargeGenerator
+  Import/      # Upload, ParsedTransaction, GpayScreenshotParser, HdfcStatementParser, TransactionMatcher
+  Sheet/       # SheetSyncService, SyncToGoogleSheet job, model observers
+```
 
-## Laravel Sponsors
+## Setup
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Quick Start
 
-### Premium Partners
+```bash
+git clone https://github.com/kkz6/apartment-management.git
+cd apartment-management
+composer run setup
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+This installs dependencies, copies `.env`, generates the app key, runs migrations, and builds frontend assets.
 
-## Contributing
+### Manual Setup
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+touch database/database.sqlite
+php artisan migrate
+npm install
+npm run build
+```
 
-## Code of Conduct
+### Seed Sample Data
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+php artisan db:seed --class=SampleDataSeeder
+```
 
-## Security Vulnerabilities
+Creates 10 units, 10 residents, maintenance slabs (1BHK: Rs.1500, 2BHK: Rs.2500, 3BHK: Rs.3500), sample charges for Q4 2025 and Q1 2026, payments, and expenses.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Run Development Server
+
+```bash
+composer run dev
+```
+
+Starts Laravel server, queue worker, log tail, and Vite HMR concurrently.
+
+## Environment Variables
+
+### Required
+
+```env
+APP_KEY=              # Generated by setup
+DB_CONNECTION=sqlite  # Or mysql, pgsql
+```
+
+### AI/OCR (for Import module)
+
+```env
+ANTHROPIC_API_KEY=    # Claude API key for GPay OCR and PDF parsing
+```
+
+### Google Sheets (for Sheet module)
+
+```env
+GOOGLE_SERVICE_ENABLED=true
+GOOGLE_SERVICE_ACCOUNT_JSON_LOCATION=/path/to/service-account.json
+GOOGLE_SHEET_ID=your-spreadsheet-id
+```
+
+The Sheet module is optional. If `GOOGLE_SHEET_ID` is not set, observers skip syncing.
+
+### Password-Protected PDFs
+
+Bank statement uploads support password-protected PDFs. Requires `qpdf` on the server:
+
+```bash
+# macOS
+brew install qpdf
+
+# Ubuntu/Debian
+apt install qpdf
+```
+
+## Testing
+
+```bash
+composer run test
+# or
+php artisan test
+```
+
+81 tests covering all modules: unit models, billing logic, charge generation, transaction matching, reconciliation, and Google Sheets sync.
+
+## Project Structure
+
+```
+app/
+  Http/Controllers/DashboardController.php
+Modules/
+  Apartment/
+    app/Models/            Unit, Resident, MaintenanceSlab
+    app/Http/Controllers/  UnitsController, ResidentsController, MaintenanceSlabsController
+    routes/web.php
+    tests/
+  Billing/
+    app/Models/            Charge, Payment, Expense
+    app/Http/Controllers/  ChargesController, PaymentsController, ExpensesController
+    app/Services/          MaintenanceChargeGenerator
+    app/Support/           BillingQuarter
+    routes/web.php
+    tests/
+  Import/
+    app/Models/            Upload, ParsedTransaction
+    app/Http/Controllers/  UploadsController, ReviewQueueController
+    app/Services/          GpayScreenshotParser, HdfcStatementParser, TransactionMatcher
+    app/Jobs/              ProcessGpayScreenshot, ProcessBankStatement
+    app/Ai/                TransactionExtractorAgent
+    routes/web.php
+    tests/
+  Sheet/
+    app/Services/          SheetSyncService
+    app/Jobs/              SyncToGoogleSheet
+    app/Observers/         PaymentObserver, ChargeObserver, ExpenseObserver
+    routes/web.php
+    tests/
+resources/js/
+  Pages/                   Vue 3 pages organized by module
+  Components/ui/           shadcn/ui components (data-table, button, card, badge, etc.)
+  Layouts/                 AuthenticatedLayout (sidebar + sticky header)
+```
+
+## Reconciliation Flow
+
+```
+GPay Screenshot / Bank Statement PDF
+  -> Upload via /uploads/create
+  -> Queued job (ProcessGpayScreenshot / ProcessBankStatement)
+  -> AI extracts transactions (Claude API)
+  -> ParsedTransaction records created with fingerprints
+  -> TransactionMatcher auto-matches:
+       Credits -> find resident by GPay name -> create Payment
+       Debits  -> create Expense
+  -> Bank statement reconciles existing payments (pending_verification -> bank_verified)
+  -> Unmatched transactions appear in Review Queue for manual assignment
+```
+
+## Google Sheets Sync
+
+Eloquent observers on Payment, Charge, and Expense models dispatch `SyncToGoogleSheet` jobs whenever records change. The service syncs two tab types:
+
+- **Quarterly tab** (e.g. "Q1 2026") -- line-by-line payments and expenses
+- **Summary tab** -- per-unit overview with charges due, paid, and balance
+
+Requires a Google Service Account with editor access to the target spreadsheet.
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+MIT
