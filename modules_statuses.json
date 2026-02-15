@@ -2,5 +2,6 @@
     "Apartment": true,
     "Billing": true,
     "Sheet": true,
-    "Import": true
+    "Import": true,
+    "Telegram": true
 }
