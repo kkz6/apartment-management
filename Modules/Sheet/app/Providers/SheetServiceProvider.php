@@ -4,6 +4,12 @@ namespace Modules\Sheet\Providers;
 
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
+use Modules\Billing\Models\Charge;
+use Modules\Billing\Models\Expense;
+use Modules\Billing\Models\Payment;
+use Modules\Sheet\Observers\ChargeObserver;
+use Modules\Sheet\Observers\ExpenseObserver;
+use Modules\Sheet\Observers\PaymentObserver;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -27,6 +33,10 @@ class SheetServiceProvider extends ServiceProvider
         $this->registerConfig();
         $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->name, 'database/migrations'));
+
+        Payment::observe(PaymentObserver::class);
+        Charge::observe(ChargeObserver::class);
+        Expense::observe(ExpenseObserver::class);
     }
 
     /**
