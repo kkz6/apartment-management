@@ -2,11 +2,32 @@
 import type { ColumnDef } from '@tanstack/vue-table'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { computed, h } from 'vue';
+import { computed, h, ref } from 'vue';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
+import { Input } from '@/Components/ui/input';
+import { Label } from '@/Components/ui/label';
 import { Alert, AlertDescription } from '@/Components/ui/alert';
-import { DataTable, DataTableColumnHeader, DataTableRowActions } from '@/Components/ui/data-table';
+import { DataTable, DataTableColumnHeader } from '@/Components/ui/data-table';
+import UploadRowActions from './UploadRowActions.vue';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/Components/ui/alert-dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/Components/ui/dialog';
 import type { PaginationData } from '@/types';
 
 interface Upload {
@@ -24,7 +45,51 @@ const props = defineProps<{
     uploads: PaginationData<Upload>;
 }>();
 
-const flash = computed(() => usePage().props.flash as { success?: string } | undefined);
+const flash = computed(() => usePage().props.flash as { success?: string; error?: string } | undefined);
+
+const showRetryConfirm = ref(false);
+const retryUploadId = ref<number | null>(null);
+
+const showBankRetryDialog = ref(false);
+const bankRetryUploadId = ref<number | null>(null);
+const bankRetryPassword = ref('');
+
+const canRetry = (status: string): boolean => {
+    return status === 'failed' || status === 'processed';
+};
+
+const startRetry = (upload: Upload): void => {
+    if (upload.type === 'bank_statement') {
+        bankRetryUploadId.value = upload.id;
+        bankRetryPassword.value = '';
+        showBankRetryDialog.value = true;
+    } else {
+        retryUploadId.value = upload.id;
+        showRetryConfirm.value = true;
+    }
+};
+
+const confirmGpayRetry = (): void => {
+    if (!retryUploadId.value) {
+        return;
+    }
+
+    router.post(route('uploads.retry', retryUploadId.value));
+    retryUploadId.value = null;
+};
+
+const confirmBankRetry = (): void => {
+    if (!bankRetryUploadId.value) {
+        return;
+    }
+
+    router.post(route('uploads.retry', bankRetryUploadId.value), {
+        password: bankRetryPassword.value || null,
+    });
+    showBankRetryDialog.value = false;
+    bankRetryUploadId.value = null;
+    bankRetryPassword.value = '';
+};
 
 const typeLabel = (type: string): string => {
     switch (type) {
@@ -100,9 +165,10 @@ const columns: ColumnDef<Upload>[] = [
     },
     {
         id: 'actions',
-        cell: ({ row }) => h(DataTableRowActions, {
+        cell: ({ row }) => h(UploadRowActions, {
+            showRetry: canRetry(row.original.status),
+            onRetry: () => startRetry(row.original),
             onDelete: () => router.delete(route('uploads.destroy', row.original.id)),
-            deleteMessage: 'Are you sure you want to delete this upload? This action cannot be undone.',
         }),
     },
 ];
@@ -129,10 +195,61 @@ const columns: ColumnDef<Upload>[] = [
             <AlertDescription>{{ flash.success }}</AlertDescription>
         </Alert>
 
+        <Alert v-if="flash?.error" variant="destructive" class="mb-4">
+            <AlertDescription>{{ flash.error }}</AlertDescription>
+        </Alert>
+
         <DataTable :columns="columns" :data="uploads.data" :pagination="uploads">
             <template #empty>
                 No uploads found. Click "Upload File" to get started.
             </template>
         </DataTable>
+
+        <AlertDialog v-model:open="showRetryConfirm">
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Retry processing?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This will delete all existing parsed transactions for this upload and reprocess the file.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction @click="confirmGpayRetry">
+                        Retry
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+        <Dialog v-model:open="showBankRetryDialog">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Retry bank statement processing</DialogTitle>
+                    <DialogDescription>
+                        This will delete all existing parsed transactions and reprocess the file.
+                        If the PDF is password-protected, enter the password below.
+                    </DialogDescription>
+                </DialogHeader>
+                <div class="grid gap-2 py-4">
+                    <Label for="retry-password">PDF Password (optional)</Label>
+                    <Input
+                        id="retry-password"
+                        v-model="bankRetryPassword"
+                        type="password"
+                        placeholder="Leave blank if not encrypted"
+                        @keydown.enter="confirmBankRetry"
+                    />
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" @click="showBankRetryDialog = false">
+                        Cancel
+                    </Button>
+                    <Button @click="confirmBankRetry">
+                        Retry
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </AuthenticatedLayout>
 </template>

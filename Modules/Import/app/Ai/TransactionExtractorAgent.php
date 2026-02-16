@@ -7,10 +7,15 @@ use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Promptable;
 use Stringable;
 
-#[Provider('anthropic')]
+#[Provider('gemini')]
 class TransactionExtractorAgent implements Agent
 {
     use Promptable;
+
+    public function timeout(): int
+    {
+        return 240;
+    }
 
     public function instructions(): Stringable|string
     {

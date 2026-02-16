@@ -209,41 +209,41 @@ const recentUploadColumns: ColumnDef<RecentUpload>[] = [
             <h3 class="mb-4 text-lg font-medium text-foreground">
                 Reconciliation Status
             </h3>
-            <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                <Card>
-                    <CardHeader class="pb-2">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <Card class="gap-1 py-4">
+                    <CardHeader>
                         <CardTitle class="text-sm font-medium text-yellow-600">
                             Pending Verification
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div class="text-3xl font-semibold">
+                        <div class="text-2xl font-semibold">
                             {{ reconciliation.pending_verification }}
                         </div>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader class="pb-2">
+                <Card class="gap-1 py-4">
+                    <CardHeader>
                         <CardTitle class="text-sm font-medium text-green-600">
                             Bank Verified
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div class="text-3xl font-semibold">
+                        <div class="text-2xl font-semibold">
                             {{ reconciliation.bank_verified }}
                         </div>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader class="pb-2">
+                <Card class="gap-1 py-4">
+                    <CardHeader>
                         <CardTitle class="text-sm font-medium text-red-600">
                             Unmatched
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div class="text-3xl font-semibold">
+                        <div class="text-2xl font-semibold">
                             {{ reconciliation.unmatched }}
                         </div>
                         <Button variant="link" as-child class="mt-1 h-auto p-0" v-if="reconciliation.unmatched > 0">

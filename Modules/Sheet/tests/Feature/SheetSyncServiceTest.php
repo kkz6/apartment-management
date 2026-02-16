@@ -24,6 +24,19 @@ function mockSheets(?Closure $updateCallback = null): void
     }
 
     app()->instance(Factory::class, $mock);
+
+    mockGoogleSheetsService();
+}
+
+function mockGoogleSheetsService(): void
+{
+    $valuesMock = Mockery::mock(\Google\Service\Sheets\Resource\SpreadsheetsValues::class);
+    $valuesMock->shouldReceive('get')->andReturn([]);
+
+    $serviceMock = Mockery::mock(\Google\Service\Sheets::class);
+    $serviceMock->spreadsheets_values = $valuesMock;
+
+    app()->instance(\Google\Service\Sheets::class, $serviceMock);
 }
 
 beforeEach(function () {
@@ -206,6 +219,7 @@ it('syncs both monthly and summary tabs when month is provided', function () {
     $mock->shouldReceive('update')->twice();
 
     app()->instance(Factory::class, $mock);
+    mockGoogleSheetsService();
 
     $service = new SheetSyncService;
 
@@ -220,6 +234,7 @@ it('syncs only summary tab when no month is provided', function () {
     $mock->shouldReceive('update')->once();
 
     app()->instance(Factory::class, $mock);
+    mockGoogleSheetsService();
 
     $service = new SheetSyncService;
 

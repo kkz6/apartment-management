@@ -1,13 +1,24 @@
 <script setup lang="ts">
+import type { ColumnDef } from '@tanstack/vue-table';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
-import { Card, CardContent } from '@/Components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
+import { computed, h, ref } from 'vue';
+import type { PaginationData } from '@/types';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
+import { DatePicker } from '@/Components/ui/date-picker';
+import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Alert, AlertDescription } from '@/Components/ui/alert';
+import { DataTable, DataTableColumnHeader } from '@/Components/ui/data-table';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/Components/ui/dialog';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -17,8 +28,8 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from '@/Components/ui/alert-dialog';
+import ReviewQueueRowActions from './ReviewQueueRowActions.vue';
 
 interface Resident {
     id: number;
@@ -43,62 +54,82 @@ interface Transaction {
 }
 
 const props = defineProps<{
-    transactions: Transaction[];
+    transactions: PaginationData<Transaction>;
     units: Unit[];
 }>();
 
 const flash = computed(() => usePage().props.flash as { success?: string } | undefined);
 
-const expandedRow = ref<number | null>(null);
-const activeAction = ref<string | null>(null);
+const dialogOpen = ref(false);
+const dialogAction = ref<'payment' | 'expense' | null>(null);
+const activeTxn = ref<Transaction | null>(null);
 const selectedUnitId = ref<string>('');
 const selectedCategory = ref<string>('');
+const description = ref<string>('');
+const selectedDate = ref<string>('');
+const dismissDialogOpen = ref(false);
+const dismissTxnId = ref<number | null>(null);
 
-const toggleRow = (id: number, action: string) => {
-    if (expandedRow.value === id && activeAction.value === action) {
-        expandedRow.value = null;
-        activeAction.value = null;
-        return;
-    }
-
-    expandedRow.value = id;
-    activeAction.value = action;
+const openDialog = (txn: Transaction, action: 'payment' | 'expense') => {
+    activeTxn.value = txn;
+    dialogAction.value = action;
     selectedUnitId.value = '';
     selectedCategory.value = '';
+    description.value = '';
+    selectedDate.value = txn.date ?? '';
+    dialogOpen.value = true;
 };
 
-const assignPayment = (transactionId: number) => {
-    if (!selectedUnitId.value) {
+const closeDialog = () => {
+    dialogOpen.value = false;
+    activeTxn.value = null;
+    dialogAction.value = null;
+};
+
+const openDismissDialog = (txnId: number) => {
+    dismissTxnId.value = txnId;
+    dismissDialogOpen.value = true;
+};
+
+const assignPayment = () => {
+    if (!activeTxn.value || !selectedUnitId.value) {
         return;
     }
 
-    router.post(route('review-queue.assign-payment', transactionId), {
+    router.post(route('review-queue.assign-payment', activeTxn.value.id), {
         unit_id: selectedUnitId.value,
+        description: description.value,
+        date: selectedDate.value || null,
     }, {
-        onSuccess: () => {
-            expandedRow.value = null;
-            activeAction.value = null;
-        },
+        onSuccess: closeDialog,
     });
 };
 
-const assignExpense = (transactionId: number) => {
-    if (!selectedCategory.value) {
+const assignExpense = () => {
+    if (!activeTxn.value || !selectedCategory.value) {
         return;
     }
 
-    router.post(route('review-queue.assign-expense', transactionId), {
+    router.post(route('review-queue.assign-expense', activeTxn.value.id), {
         category: selectedCategory.value,
+        description: description.value,
+        date: selectedDate.value || null,
     }, {
-        onSuccess: () => {
-            expandedRow.value = null;
-            activeAction.value = null;
-        },
+        onSuccess: closeDialog,
     });
 };
 
-const dismiss = (transactionId: number) => {
-    router.post(route('review-queue.dismiss', transactionId));
+const dismiss = () => {
+    if (!dismissTxnId.value) {
+        return;
+    }
+
+    router.post(route('review-queue.dismiss', dismissTxnId.value), {}, {
+        onSuccess: () => {
+            dismissDialogOpen.value = false;
+            dismissTxnId.value = null;
+        },
+    });
 };
 
 const formatCurrency = (amount: string): string => {
@@ -109,8 +140,18 @@ const formatCurrency = (amount: string): string => {
     }).format(Number(amount));
 };
 
-const formatDate = (date: string): string => {
-    return new Date(date).toLocaleDateString('en-IN', {
+const formatDate = (date: string | null): string => {
+    if (!date) {
+        return '-';
+    }
+
+    const parsed = new Date(date + 'T00:00:00');
+
+    if (isNaN(parsed.getTime())) {
+        return '-';
+    }
+
+    return parsed.toLocaleDateString('en-IN', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
@@ -138,6 +179,44 @@ const sourceLabel = (type: string | null): string => {
             return 'Unknown';
     }
 };
+
+const columns: ColumnDef<Transaction>[] = [
+    {
+        accessorKey: 'sender_name',
+        header: ({ column }) => h(DataTableColumnHeader, { column, title: 'Sender' }),
+        cell: ({ row }) => h('span', { class: 'font-medium' }, row.getValue('sender_name') ?? '-'),
+    },
+    {
+        accessorKey: 'amount',
+        header: ({ column }) => h(DataTableColumnHeader, { column, title: 'Amount', class: 'justify-end' }),
+        cell: ({ row }) => h('div', { class: 'whitespace-nowrap text-right' }, formatCurrency(row.getValue('amount'))),
+    },
+    {
+        accessorKey: 'date',
+        header: ({ column }) => h(DataTableColumnHeader, { column, title: 'Date' }),
+        cell: ({ row }) => h('div', { class: 'whitespace-nowrap text-muted-foreground' }, formatDate(row.getValue('date'))),
+    },
+    {
+        accessorKey: 'direction',
+        header: 'Direction',
+        cell: ({ row }) => h(Badge, {
+            variant: directionBadgeVariant(row.getValue('direction')),
+        }, () => row.getValue('direction')),
+    },
+    {
+        accessorKey: 'upload_type',
+        header: 'Source',
+        cell: ({ row }) => h(Badge, { variant: 'outline' }, () => sourceLabel(row.getValue('upload_type'))),
+    },
+    {
+        id: 'actions',
+        cell: ({ row }) => h(ReviewQueueRowActions, {
+            onAssignPayment: () => openDialog(row.original, 'payment'),
+            onAssignExpense: () => openDialog(row.original, 'expense'),
+            onDismiss: () => openDismissDialog(row.original.id),
+        }),
+    },
+];
 </script>
 
 <template>
@@ -149,180 +228,149 @@ const sourceLabel = (type: string | null): string => {
                 <h2 class="text-xl font-semibold leading-tight text-foreground">
                     Review Queue
                 </h2>
-                <Badge v-if="transactions.length" variant="outline">
-                    {{ transactions.length }} unmatched
+                <Badge v-if="transactions.total" variant="outline">
+                    {{ transactions.total }} unmatched
                 </Badge>
             </div>
         </template>
 
         <Alert v-if="flash?.success" class="mb-4">
-                    <AlertDescription>{{ flash.success }}</AlertDescription>
-                </Alert>
+            <AlertDescription>{{ flash.success }}</AlertDescription>
+        </Alert>
 
-                <Card>
-                    <CardContent class="p-0">
-                        <div v-if="transactions.length">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Sender</TableHead>
-                                        <TableHead class="text-right">Amount</TableHead>
-                                        <TableHead>Date</TableHead>
-                                        <TableHead>Direction</TableHead>
-                                        <TableHead>Source</TableHead>
-                                        <TableHead class="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    <template v-for="txn in transactions" :key="txn.id">
-                                        <TableRow>
-                                            <TableCell class="font-medium">
-                                                {{ txn.sender_name ?? '-' }}
-                                            </TableCell>
-                                            <TableCell class="text-right">
-                                                {{ formatCurrency(txn.amount) }}
-                                            </TableCell>
-                                            <TableCell class="text-muted-foreground">
-                                                {{ formatDate(txn.date) }}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge :variant="directionBadgeVariant(txn.direction)">
-                                                    {{ txn.direction }}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant="outline">
-                                                    {{ sourceLabel(txn.upload_type) }}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell class="text-right">
-                                                <div class="flex items-center justify-end gap-1">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        @click="toggleRow(txn.id, 'payment')"
-                                                    >
-                                                        Assign to Unit
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        @click="toggleRow(txn.id, 'expense')"
-                                                    >
-                                                        Expense
-                                                    </Button>
-                                                    <AlertDialog>
-                                                        <AlertDialogTrigger as-child>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                class="text-muted-foreground"
-                                                            >
-                                                                Dismiss
-                                                            </Button>
-                                                        </AlertDialogTrigger>
-                                                        <AlertDialogContent>
-                                                            <AlertDialogHeader>
-                                                                <AlertDialogTitle>Dismiss transaction?</AlertDialogTitle>
-                                                                <AlertDialogDescription>
-                                                                    Are you sure you want to dismiss this transaction? This action cannot be undone.
-                                                                </AlertDialogDescription>
-                                                            </AlertDialogHeader>
-                                                            <AlertDialogFooter>
-                                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                                <AlertDialogAction @click="dismiss(txn.id)">
-                                                                    Dismiss
-                                                                </AlertDialogAction>
-                                                            </AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
+        <DataTable :columns="columns" :data="transactions.data" :pagination="transactions">
+            <template #empty>
+                No unmatched transactions. All transactions have been reviewed.
+            </template>
+        </DataTable>
 
-                                        <TableRow v-if="expandedRow === txn.id && activeAction === 'payment'" class="bg-muted/50">
-                                            <TableCell :colspan="6">
-                                                <div class="flex items-end gap-4">
-                                                    <div class="flex-1">
-                                                        <Label>Select Unit</Label>
-                                                        <select
-                                                            v-model="selectedUnitId"
-                                                            class="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                                        >
-                                                            <option value="" disabled>Choose a unit</option>
-                                                            <option
-                                                                v-for="unit in units"
-                                                                :key="unit.id"
-                                                                :value="unit.id"
-                                                            >
-                                                                {{ unit.flat_number }}
-                                                                <template v-if="unit.residents.length">
-                                                                    - {{ unit.residents.map(r => r.name).join(', ') }}
-                                                                </template>
-                                                            </option>
-                                                        </select>
-                                                    </div>
-                                                    <Button
-                                                        size="sm"
-                                                        :disabled="!selectedUnitId"
-                                                        @click="assignPayment(txn.id)"
-                                                    >
-                                                        Assign
-                                                    </Button>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        @click="expandedRow = null; activeAction = null"
-                                                    >
-                                                        Cancel
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
+        <!-- Assign to Unit Dialog -->
+        <Dialog :open="dialogOpen && dialogAction === 'payment'" @update:open="closeDialog">
+            <DialogContent v-if="activeTxn">
+                <DialogHeader>
+                    <DialogTitle>Assign to Unit</DialogTitle>
+                    <DialogDescription>
+                        {{ activeTxn.sender_name ?? 'Unknown' }} &mdash;
+                        {{ formatCurrency(activeTxn.amount) }} on {{ formatDate(activeTxn.date) }}
+                    </DialogDescription>
+                </DialogHeader>
 
-                                        <TableRow v-if="expandedRow === txn.id && activeAction === 'expense'" class="bg-muted/50">
-                                            <TableCell :colspan="6">
-                                                <div class="flex items-end gap-4">
-                                                    <div class="flex-1">
-                                                        <Label>Expense Category</Label>
-                                                        <select
-                                                            v-model="selectedCategory"
-                                                            class="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                                        >
-                                                            <option value="" disabled>Choose a category</option>
-                                                            <option value="electricity">Electricity</option>
-                                                            <option value="water">Water</option>
-                                                            <option value="maintenance">Maintenance</option>
-                                                            <option value="service">Service</option>
-                                                            <option value="other">Other</option>
-                                                        </select>
-                                                    </div>
-                                                    <Button
-                                                        size="sm"
-                                                        :disabled="!selectedCategory"
-                                                        @click="assignExpense(txn.id)"
-                                                    >
-                                                        Mark as Expense
-                                                    </Button>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        @click="expandedRow = null; activeAction = null"
-                                                    >
-                                                        Cancel
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    </template>
-                                </TableBody>
-                            </Table>
-                        </div>
+                <div class="space-y-4">
+                    <div>
+                        <Label>Select Unit</Label>
+                        <select
+                            v-model="selectedUnitId"
+                            class="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        >
+                            <option value="" disabled>Choose a unit</option>
+                            <option
+                                v-for="unit in units"
+                                :key="unit.id"
+                                :value="unit.id"
+                            >
+                                {{ unit.flat_number }}
+                                <template v-if="unit.residents.length">
+                                    - {{ unit.residents.map(r => r.name).join(', ') }}
+                                </template>
+                            </option>
+                        </select>
+                    </div>
+                    <div>
+                        <Label>Date</Label>
+                        <DatePicker
+                            v-model="selectedDate"
+                            placeholder="Pick a date"
+                            class="mt-1"
+                        />
+                    </div>
+                    <div>
+                        <Label>Description (optional)</Label>
+                        <Input
+                            v-model="description"
+                            class="mt-1"
+                            placeholder="e.g. Q1 2025 maintenance, advance payment"
+                        />
+                    </div>
+                </div>
 
-                        <p v-else class="p-6 text-muted-foreground">
-                            No unmatched transactions. All transactions have been reviewed.
-                        </p>
-                    </CardContent>
-                </Card>
+                <DialogFooter>
+                    <Button variant="outline" @click="closeDialog">Cancel</Button>
+                    <Button :disabled="!selectedUnitId || !selectedDate" @click="assignPayment">
+                        Assign
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Expense Dialog -->
+        <Dialog :open="dialogOpen && dialogAction === 'expense'" @update:open="closeDialog">
+            <DialogContent v-if="activeTxn">
+                <DialogHeader>
+                    <DialogTitle>Mark as Expense</DialogTitle>
+                    <DialogDescription>
+                        {{ activeTxn.sender_name ?? 'Unknown' }} &mdash;
+                        {{ formatCurrency(activeTxn.amount) }} on {{ formatDate(activeTxn.date) }}
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div class="space-y-4">
+                    <div>
+                        <Label>Expense Category</Label>
+                        <select
+                            v-model="selectedCategory"
+                            class="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        >
+                            <option value="" disabled>Choose a category</option>
+                            <option value="electricity">Electricity</option>
+                            <option value="water">Water</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="service">Service</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <Label>Date</Label>
+                        <DatePicker
+                            v-model="selectedDate"
+                            placeholder="Pick a date"
+                            class="mt-1"
+                        />
+                    </div>
+                    <div>
+                        <Label>Description (optional)</Label>
+                        <Input
+                            v-model="description"
+                            class="mt-1"
+                            placeholder="e.g. Common area electricity bill, plumber repair"
+                        />
+                    </div>
+                </div>
+
+                <DialogFooter>
+                    <Button variant="outline" @click="closeDialog">Cancel</Button>
+                    <Button :disabled="!selectedCategory || !selectedDate" @click="assignExpense">
+                        Mark as Expense
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Dismiss Dialog -->
+        <AlertDialog :open="dismissDialogOpen" @update:open="dismissDialogOpen = false">
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Dismiss transaction?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This will mark the transaction as reconciled. This action cannot be undone.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction @click="dismiss">
+                        Dismiss
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     </AuthenticatedLayout>
 </template>

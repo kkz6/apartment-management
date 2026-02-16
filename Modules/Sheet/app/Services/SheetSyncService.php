@@ -3,6 +3,13 @@
 namespace Modules\Sheet\Services;
 
 use Carbon\Carbon;
+use Google\Client as GoogleClient;
+use Google\Service\Exception as GoogleServiceException;
+use Google\Service\Sheets as GoogleSheets;
+use Google\Service\Sheets\AddSheetRequest;
+use Google\Service\Sheets\BatchUpdateSpreadsheetRequest;
+use Google\Service\Sheets\Request as SheetRequest;
+use Google\Service\Sheets\SheetProperties;
 use Modules\Apartment\Models\Unit;
 use Modules\Billing\Models\Charge;
 use Modules\Billing\Models\Expense;
@@ -101,6 +108,8 @@ class SheetSyncService
 
         $sheetName = $this->monthTabName($month);
 
+        $this->ensureSheetExists($sheetName);
+
         Sheets::spreadsheet($this->spreadsheetId)
             ->sheet($sheetName)
             ->update($rows);
@@ -154,6 +163,8 @@ class SheetSyncService
             $rows[] = $row;
         }
 
+        $this->ensureSheetExists('Summary');
+
         Sheets::spreadsheet($this->spreadsheetId)
             ->sheet('Summary')
             ->update($rows);
@@ -164,6 +175,45 @@ class SheetSyncService
         $date = Carbon::createFromFormat('Y-m', $month);
 
         return $date->format('M Y');
+    }
+
+    private function ensureSheetExists(string $sheetName): void
+    {
+        $service = $this->getSheetsService();
+
+        try {
+            $service->spreadsheets_values->get($this->spreadsheetId, $sheetName);
+        } catch (GoogleServiceException $e) {
+            if ($e->getCode() !== 400) {
+                throw $e;
+            }
+
+            $addSheet = new SheetRequest([
+                'addSheet' => new AddSheetRequest([
+                    'properties' => new SheetProperties([
+                        'title' => $sheetName,
+                    ]),
+                ]),
+            ]);
+
+            $service->spreadsheets->batchUpdate(
+                $this->spreadsheetId,
+                new BatchUpdateSpreadsheetRequest(['requests' => [$addSheet]])
+            );
+        }
+    }
+
+    private function getSheetsService(): GoogleSheets
+    {
+        if (app()->bound(GoogleSheets::class)) {
+            return app(GoogleSheets::class);
+        }
+
+        $client = new GoogleClient;
+        $client->setAuthConfig(base_path(config('google.service.file')));
+        $client->setScopes([GoogleSheets::SPREADSHEETS]);
+
+        return new GoogleSheets($client);
     }
 
     private function formatAmount(float $amount): string

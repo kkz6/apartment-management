@@ -5,6 +5,7 @@ namespace Modules\Import\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 use Modules\Import\Jobs\ProcessBankStatement;
@@ -64,6 +65,35 @@ class UploadsController extends Controller
 
         return redirect()->route('uploads.index')
             ->with('success', 'File uploaded. Processing will begin shortly.');
+    }
+
+    public function retry(Request $request, Upload $upload): RedirectResponse
+    {
+        $request->validate([
+            'password' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        if (! Storage::exists($upload->file_path)) {
+            return redirect()->route('uploads.index')
+                ->with('error', 'Source file no longer exists. Please re-upload.');
+        }
+
+        $upload->parsedTransactions()->delete();
+
+        $upload->update([
+            'status' => 'pending',
+            'processed_at' => null,
+        ]);
+
+        if ($upload->type === 'gpay_screenshot') {
+            ProcessGpayScreenshot::dispatch($upload);
+        } else {
+            $password = $request->input('password');
+            ProcessBankStatement::dispatch($upload, $password ?: null);
+        }
+
+        return redirect()->route('uploads.index')
+            ->with('success', 'Upload queued for reprocessing.');
     }
 
     public function destroy(Upload $upload): RedirectResponse

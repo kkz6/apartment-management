@@ -6,6 +6,7 @@ use Modules\Import\Http\Controllers\UploadsController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('uploads', UploadsController::class)->only(['index', 'create', 'store', 'destroy']);
+    Route::post('uploads/{upload}/retry', [UploadsController::class, 'retry'])->name('uploads.retry');
 
     Route::get('review-queue', [ReviewQueueController::class, 'index'])->name('review-queue.index');
     Route::post('review-queue/{parsedTransaction}/assign-payment', [ReviewQueueController::class, 'assignPayment'])->name('review-queue.assign-payment');

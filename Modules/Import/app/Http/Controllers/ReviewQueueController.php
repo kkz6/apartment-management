@@ -21,12 +21,12 @@ class ReviewQueueController extends Controller
             'transactions' => ParsedTransaction::where('reconciliation_status', 'unmatched')
                 ->with('upload')
                 ->latest()
-                ->get()
-                ->map(fn ($t) => [
+                ->paginate(15)
+                ->through(fn ($t) => [
                     'id' => $t->id,
                     'sender_name' => $t->sender_name,
                     'amount' => $t->amount,
-                    'date' => $t->date->format('d-m-Y'),
+                    'date' => $t->date?->format('Y-m-d'),
                     'direction' => $t->direction,
                     'raw_text' => $t->raw_text,
                     'upload_type' => $t->upload?->type,
@@ -41,7 +41,11 @@ class ReviewQueueController extends Controller
     {
         $validated = $request->validate([
             'unit_id' => ['required', 'exists:units,id'],
+            'description' => ['nullable', 'string', 'max:255'],
+            'date' => ['nullable', 'date'],
         ]);
+
+        $paidDate = $validated['date'] ?? $parsedTransaction->date;
 
         $charge = Charge::where('unit_id', $validated['unit_id'])
             ->where('status', '!=', 'paid')
@@ -52,10 +56,12 @@ class ReviewQueueController extends Controller
             'charge_id' => $charge?->id,
             'unit_id' => $validated['unit_id'],
             'amount' => $parsedTransaction->amount,
-            'paid_date' => $parsedTransaction->date,
+            'paid_date' => $paidDate,
             'source' => $parsedTransaction->upload?->type === 'gpay_screenshot' ? 'gpay' : 'bank_transfer',
+            'reference_number' => $validated['description'] ?? null,
             'matched_by' => 'manual',
             'reconciliation_status' => 'pending_verification',
+            'added_by' => auth()->id(),
         ]);
 
         $charge?->updateStatus();
@@ -73,15 +79,20 @@ class ReviewQueueController extends Controller
     {
         $validated = $request->validate([
             'category' => ['required', 'in:electricity,water,maintenance,service,other'],
+            'description' => ['nullable', 'string', 'max:255'],
+            'date' => ['nullable', 'date'],
         ]);
 
+        $paidDate = $validated['date'] ?? $parsedTransaction->date;
+
         $expense = Expense::create([
-            'description' => $parsedTransaction->sender_name ?? 'Unknown expense',
+            'description' => $validated['description'] ?: ($parsedTransaction->sender_name ?? 'Unknown expense'),
             'amount' => $parsedTransaction->amount,
-            'paid_date' => $parsedTransaction->date,
+            'paid_date' => $paidDate,
             'category' => $validated['category'],
             'source' => $parsedTransaction->upload?->type === 'gpay_screenshot' ? 'gpay' : 'bank_transfer',
             'reconciliation_status' => 'pending_verification',
+            'added_by' => auth()->id(),
         ]);
 
         $parsedTransaction->update([
