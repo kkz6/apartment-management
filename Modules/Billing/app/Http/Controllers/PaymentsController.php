@@ -46,6 +46,7 @@ class PaymentsController extends Controller
 
         $payment = Payment::create(array_merge($validated, [
             'reconciliation_status' => 'manual',
+            'added_by' => auth()->id(),
         ]));
 
         if ($payment->charge_id) {

@@ -3,30 +3,28 @@
 namespace Modules\Sheet\Observers;
 
 use Modules\Billing\Models\Expense;
-use Modules\Billing\Support\BillingQuarter;
 use Modules\Sheet\Jobs\SyncToGoogleSheet;
 
 class ExpenseObserver
 {
     public function created(Expense $expense): void
     {
-        if (! config('services.google.sheet_id')) {
-            return;
-        }
-
-        $billingMonth = BillingQuarter::fromDate($expense->paid_date);
-
-        SyncToGoogleSheet::dispatch($billingMonth);
+        $this->dispatch($expense);
     }
 
     public function updated(Expense $expense): void
+    {
+        $this->dispatch($expense);
+    }
+
+    private function dispatch(Expense $expense): void
     {
         if (! config('services.google.sheet_id')) {
             return;
         }
 
-        $billingMonth = BillingQuarter::fromDate($expense->paid_date);
+        $month = $expense->paid_date->format('Y-m');
 
-        SyncToGoogleSheet::dispatch($billingMonth);
+        SyncToGoogleSheet::dispatch($month);
     }
 }

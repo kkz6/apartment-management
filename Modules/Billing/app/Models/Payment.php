@@ -2,6 +2,7 @@
 
 namespace Modules\Billing\Models;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,6 +22,8 @@ class Payment extends Model
         'reference_number',
         'matched_by',
         'reconciliation_status',
+        'added_by',
+        'receipt_path',
     ];
 
     protected $casts = [
@@ -41,5 +44,10 @@ class Payment extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
+    }
+
+    public function addedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'added_by');
     }
 }

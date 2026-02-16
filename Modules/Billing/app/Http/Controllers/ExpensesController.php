@@ -36,6 +36,7 @@ class ExpensesController extends Controller
 
         Expense::create(array_merge($validated, [
             'reconciliation_status' => 'manual',
+            'added_by' => auth()->id(),
         ]));
 
         return redirect()->route('expenses.index')->with('success', 'Expense recorded.');

@@ -2,11 +2,11 @@
 
 namespace Modules\Sheet\Services;
 
+use Carbon\Carbon;
 use Modules\Apartment\Models\Unit;
 use Modules\Billing\Models\Charge;
 use Modules\Billing\Models\Expense;
 use Modules\Billing\Models\Payment;
-use Modules\Billing\Support\BillingQuarter;
 use Revolution\Google\Sheets\Facades\Sheets;
 
 class SheetSyncService
@@ -18,46 +18,88 @@ class SheetSyncService
         $this->spreadsheetId = config('services.google.sheet_id', '');
     }
 
-    public function syncMonthlyTab(string $billingQuarter): void
+    public function syncMonth(int $year, int $month): void
     {
-        $sheetName = $this->monthTabName($billingQuarter);
-        $range = BillingQuarter::dateRange($billingQuarter);
+        $this->syncMonthlyTab("{$year}-" . str_pad($month, 2, '0', STR_PAD_LEFT));
+    }
 
-        $payments = Payment::whereBetween('paid_date', [$range['start'], $range['end']])
-            ->with(['unit', 'charge'])
+    public function syncMonthlyTab(string $month): void
+    {
+        $date = Carbon::createFromFormat('Y-m', $month);
+        $start = $date->copy()->startOfMonth();
+        $end = $date->copy()->endOfMonth();
+
+        $payments = Payment::whereBetween('paid_date', [$start, $end])
+            ->with(['unit', 'charge', 'addedBy'])
             ->orderBy('paid_date')
             ->get();
 
-        $expenses = Expense::whereBetween('paid_date', [$range['start'], $range['end']])
+        $expenses = Expense::whereBetween('paid_date', [$start, $end])
+            ->with('addedBy')
             ->orderBy('paid_date')
             ->get();
 
-        $header = ['Date', 'Unit', 'Resident', 'Amount', 'Type', 'Source', 'Reconciliation'];
-        $rows = [$header];
+        $incomeTotal = (float) $payments->sum('amount');
+        $expenseTotal = (float) $expenses->sum('amount');
+        $netBalance = $incomeTotal - $expenseTotal;
+
+        $header = ['Date', 'Type', 'Category', 'Description', 'Amount', 'Receipt', 'Added By', 'Timestamp'];
+
+        $totalsRow = [
+            'Totals',
+            '',
+            '',
+            "Net Balance: " . $this->formatAmount($netBalance),
+            "Income: " . $this->formatAmount($incomeTotal) . " / Expenses: " . $this->formatAmount($expenseTotal),
+            '',
+            '',
+            '',
+        ];
+
+        $rows = [$header, $totalsRow];
+
+        $combined = collect();
 
         foreach ($payments as $payment) {
-            $rows[] = [
-                $payment->paid_date->format('d-m-Y'),
-                $payment->unit?->flat_number ?? '',
-                $payment->unit?->residents()->first()?->name ?? '',
-                $payment->amount,
-                "Income - " . ($payment->charge?->type ?? 'payment'),
-                $payment->source,
-                $payment->reconciliation_status,
-            ];
+            $combined->push([
+                'date' => $payment->paid_date,
+                'type' => 'income',
+                'category' => $payment->charge?->type ?? 'payment',
+                'description' => "Flat {$payment->unit?->flat_number} - " . ($payment->charge?->description ?? 'Payment'),
+                'amount' => (float) $payment->amount,
+                'receipt' => $payment->receipt_path ?? '',
+                'added_by' => $payment->addedBy?->name ?? '',
+                'timestamp' => $payment->created_at->toIso8601String(),
+            ]);
         }
 
         foreach ($expenses as $expense) {
-            $rows[] = [
-                $expense->paid_date->format('d-m-Y'),
-                '',
-                '',
-                "-{$expense->amount}",
-                "Expense - {$expense->category}",
-                $expense->source,
-                $expense->reconciliation_status,
-            ];
+            $combined->push([
+                'date' => $expense->paid_date,
+                'type' => 'expense',
+                'category' => $expense->category,
+                'description' => $expense->description,
+                'amount' => (float) $expense->amount,
+                'receipt' => $expense->receipt_path ?? '',
+                'added_by' => $expense->addedBy?->name ?? '',
+                'timestamp' => $expense->created_at->toIso8601String(),
+            ]);
         }
+
+        $combined->sortBy('date')->each(function ($item) use (&$rows) {
+            $rows[] = [
+                $item['date']->format('Y-m-d'),
+                $item['type'],
+                $item['category'],
+                $item['description'],
+                $this->formatAmount($item['amount']),
+                $item['receipt'],
+                $item['added_by'],
+                $item['timestamp'],
+            ];
+        });
+
+        $sheetName = $this->monthTabName($month);
 
         Sheets::spreadsheet($this->spreadsheetId)
             ->sheet($sheetName)
@@ -117,8 +159,15 @@ class SheetSyncService
             ->update($rows);
     }
 
-    private function monthTabName(string $billingQuarter): string
+    public function monthTabName(string $month): string
     {
-        return BillingQuarter::label($billingQuarter);
+        $date = Carbon::createFromFormat('Y-m', $month);
+
+        return $date->format('M Y');
+    }
+
+    private function formatAmount(float $amount): string
+    {
+        return '₹' . number_format($amount, 0);
     }
 }

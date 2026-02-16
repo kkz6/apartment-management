@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Support\Facades\Queue;
 use Modules\Apartment\Models\Resident;
 use Modules\Apartment\Models\Unit;
@@ -30,12 +31,14 @@ beforeEach(function () {
     config(['services.google.sheet_id' => 'test-sheet-id']);
 });
 
-it('builds quarterly tab data with payments and expenses', function () {
+it('builds monthly tab data with payments and expenses in new format', function () {
+    $user = User::factory()->create(['name' => 'Karthick K']);
     $unit = Unit::factory()->create(['flat_number' => '101']);
     Resident::factory()->create(['unit_id' => $unit->id, 'name' => 'Karthick']);
     $charge = Charge::factory()->create([
         'unit_id' => $unit->id,
         'type' => 'maintenance',
+        'description' => 'Q1 2026 Maintenance',
         'billing_month' => '2026-Q1',
     ]);
 
@@ -45,24 +48,90 @@ it('builds quarterly tab data with payments and expenses', function () {
         'amount' => 2000.00,
         'paid_date' => '2026-02-15',
         'source' => 'gpay',
+        'added_by' => $user->id,
     ]);
 
     Expense::factory()->create([
-        'amount' => 5000.00,
+        'description' => 'Rangoli powder',
+        'amount' => 200.00,
         'paid_date' => '2026-02-10',
-        'category' => 'electricity',
+        'category' => 'maintenance',
+        'added_by' => $user->id,
     ]);
 
     mockSheets(function ($rows) {
-        return count($rows) === 3
-            && $rows[0][0] === 'Date'
-            && $rows[1][1] === '101'
-            && $rows[1][2] === 'Karthick'
-            && $rows[2][4] === 'Expense - electricity';
+        // Header row
+        if ($rows[0] !== ['Date', 'Type', 'Category', 'Description', 'Amount', 'Receipt', 'Added By', 'Timestamp']) {
+            return false;
+        }
+
+        // Totals row
+        if ($rows[1][0] !== 'Totals') {
+            return false;
+        }
+
+        // 2 data rows + header + totals = 4 rows
+        if (count($rows) !== 4) {
+            return false;
+        }
+
+        // Expense row comes first (Feb 10 before Feb 15)
+        $expenseRow = $rows[2];
+        if ($expenseRow[0] !== '2026-02-10' || $expenseRow[1] !== 'expense' || $expenseRow[2] !== 'maintenance') {
+            return false;
+        }
+
+        // Payment row
+        $paymentRow = $rows[3];
+        if ($paymentRow[0] !== '2026-02-15' || $paymentRow[1] !== 'income' || $paymentRow[2] !== 'maintenance') {
+            return false;
+        }
+
+        if ($paymentRow[6] !== 'Karthick K') {
+            return false;
+        }
+
+        return true;
     });
 
     $service = new SheetSyncService;
-    $service->syncMonthlyTab('2026-Q1');
+    $service->syncMonthlyTab('2026-02');
+});
+
+it('calculates totals row correctly', function () {
+    Payment::factory()->create([
+        'amount' => 3000.00,
+        'paid_date' => '2026-03-15',
+    ]);
+
+    Payment::factory()->create([
+        'amount' => 2000.00,
+        'paid_date' => '2026-03-20',
+    ]);
+
+    Expense::factory()->create([
+        'amount' => 500.00,
+        'paid_date' => '2026-03-10',
+    ]);
+
+    mockSheets(function ($rows) {
+        $totalsRow = $rows[1];
+
+        return $totalsRow[0] === 'Totals'
+            && $totalsRow[3] === 'Net Balance: ₹4,500'
+            && $totalsRow[4] === 'Income: ₹5,000 / Expenses: ₹500';
+    });
+
+    $service = new SheetSyncService;
+    $service->syncMonthlyTab('2026-03');
+});
+
+it('generates correct month tab name format', function () {
+    $service = new SheetSyncService;
+
+    expect($service->monthTabName('2026-01'))->toBe('Jan 2026')
+        ->and($service->monthTabName('2025-12'))->toBe('Dec 2025')
+        ->and($service->monthTabName('2025-05'))->toBe('May 2025');
 });
 
 it('builds summary tab data with unit charges and payments', function () {
@@ -94,7 +163,7 @@ it('builds summary tab data with unit charges and payments', function () {
     $service->syncSummaryTab();
 });
 
-it('dispatches sync job when a payment is created', function () {
+it('dispatches sync job with month when a payment is created', function () {
     $unit = Unit::factory()->create();
     $charge = Charge::factory()->create(['unit_id' => $unit->id, 'billing_month' => '2026-Q1']);
 
@@ -105,7 +174,7 @@ it('dispatches sync job when a payment is created', function () {
     ]);
 
     Queue::assertPushed(SyncToGoogleSheet::class, function ($job) {
-        return $job->billingMonth === '2026-Q1';
+        return $job->month === '2026-02';
     });
 });
 
@@ -118,27 +187,19 @@ it('dispatches sync job when a charge is created', function () {
     ]);
 
     Queue::assertPushed(SyncToGoogleSheet::class, function ($job) {
-        return $job->billingMonth === '2026-Q1';
+        return $job->month === null;
     });
 });
 
-it('dispatches sync job when an expense is created', function () {
+it('dispatches sync job with month when an expense is created', function () {
     Expense::factory()->create(['paid_date' => '2026-02-10']);
 
     Queue::assertPushed(SyncToGoogleSheet::class, function ($job) {
-        return $job->billingMonth === '2026-Q1';
+        return $job->month === '2026-02';
     });
 });
 
-it('generates correct quarter tab name format', function () {
-    $service = new SheetSyncService;
-    $reflection = new ReflectionMethod($service, 'monthTabName');
-
-    expect($reflection->invoke($service, '2026-Q1'))->toBe('Q1 2026')
-        ->and($reflection->invoke($service, '2025-Q4'))->toBe('Q4 2025');
-});
-
-it('syncs both monthly and summary tabs when billing quarter is provided', function () {
+it('syncs both monthly and summary tabs when month is provided', function () {
     $mock = Mockery::mock(Factory::class);
     $mock->shouldReceive('spreadsheet')->andReturn($mock);
     $mock->shouldReceive('sheet')->andReturn($mock);
@@ -148,11 +209,11 @@ it('syncs both monthly and summary tabs when billing quarter is provided', funct
 
     $service = new SheetSyncService;
 
-    $job = new SyncToGoogleSheet('2026-Q1');
+    $job = new SyncToGoogleSheet('2026-02');
     $job->handle($service);
 });
 
-it('syncs only summary tab when no billing quarter is provided', function () {
+it('syncs only summary tab when no month is provided', function () {
     $mock = Mockery::mock(Factory::class);
     $mock->shouldReceive('spreadsheet')->andReturn($mock);
     $mock->shouldReceive('sheet')->with('Summary')->andReturn($mock);
@@ -164,4 +225,33 @@ it('syncs only summary tab when no billing quarter is provided', function () {
 
     $job = new SyncToGoogleSheet;
     $job->handle($service);
+});
+
+it('handles empty month with no data gracefully', function () {
+    mockSheets(function ($rows) {
+        return count($rows) === 2
+            && $rows[0][0] === 'Date'
+            && $rows[1][0] === 'Totals'
+            && $rows[1][3] === 'Net Balance: ₹0'
+            && $rows[1][4] === 'Income: ₹0 / Expenses: ₹0';
+    });
+
+    $service = new SheetSyncService;
+    $service->syncMonthlyTab('2026-06');
+});
+
+it('shows empty added_by for system-created records', function () {
+    Payment::factory()->create([
+        'amount' => 1000.00,
+        'paid_date' => '2026-04-15',
+        'added_by' => null,
+    ]);
+
+    mockSheets(function ($rows) {
+        return count($rows) === 3
+            && $rows[2][6] === '';
+    });
+
+    $service = new SheetSyncService;
+    $service->syncMonthlyTab('2026-04');
 });

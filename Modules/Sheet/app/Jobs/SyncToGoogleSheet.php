@@ -17,13 +17,13 @@ class SyncToGoogleSheet implements ShouldQueue
     use SerializesModels;
 
     public function __construct(
-        public ?string $billingMonth = null,
+        public ?string $month = null,
     ) {}
 
     public function handle(SheetSyncService $service): void
     {
-        if ($this->billingMonth) {
-            $service->syncMonthlyTab($this->billingMonth);
+        if ($this->month) {
+            $service->syncMonthlyTab($this->month);
         }
 
         $service->syncSummaryTab();
